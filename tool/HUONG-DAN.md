@@ -1,4 +1,4 @@
-# PIXEL VIDEO — Hướng dẫn dùng (cho người mới, không cần biết code)
+# PIXEL STUDIO — Hướng dẫn dùng (cho người mới, không cần biết code)
 
 Tool làm video giải thích **vẽ hoàn toàn bằng code**, phong cách **PIXEL 16-BIT**
 đã khóa cứng: bạn dán kịch bản → chọn mẫu cảnh cho từng câu → bấm Render →
@@ -20,7 +20,7 @@ hai tool không dùng chung gì cả, cứ yên tâm dùng song song.
 3. Xong bạn sẽ thấy dòng **"Setup was successful"** → đóng cửa sổ đó lại.
 
 ### Bước 2: Cài 3 thư viện cho tool
-1. Mở thư mục chứa tool Pixel Video (thư mục có file `START-PIXEL.bat`).
+1. Mở thư mục chứa tool Pixel Studio (thư mục có file `START-PIXEL.bat`).
 2. Bấm vào thanh địa chỉ của thư mục → gõ `cmd` → Enter.
    → Một cửa sổ đen (cửa sổ lệnh) sẽ mở ra ngay tại thư mục này.
 3. Dán đúng dòng này vào rồi Enter:
@@ -33,7 +33,7 @@ Cách đơn giản nhất:
 1. Tải ffmpeg bản Windows dạng file nén (.zip) từ trang chính thức
    `ffmpeg.org/download.html` (mục Windows builds).
 2. Giải nén → chép file `ffmpeg.exe` (nằm trong thư mục `bin` của bản giải
-   nén) **thẳng vào thư mục tool Pixel Video** (ngang hàng với
+   nén) **thẳng vào thư mục tool Pixel Studio** (ngang hàng với
    `START-PIXEL.bat`).
    → Tool sẽ tự tìm thấy nó ở đó, không cần cài đặt gì thêm.
    (Nếu máy bạn đã có ffmpeg trong PATH sẵn thì bỏ qua bước này.)
@@ -53,7 +53,7 @@ Cách đơn giản nhất:
 ### Bước 1: Mở tool
 - Nhấp đúp file **`START-PIXEL.bat`**.
 - Bạn sẽ thấy 1 cửa sổ đen hiện ra (đừng đóng cửa sổ này — đóng là tắt
-  tool) và **trình duyệt tự mở** trang Pixel Video ở địa chỉ
+  tool) và **trình duyệt tự mở** trang Pixel Studio ở địa chỉ
   `localhost:8766`. Nếu trình duyệt không tự mở, tự gõ địa chỉ đó vào
   trình duyệt cũng được.
 - Trang hiện ra có **3 cột**: KỊCH BẢN · TỪNG CÂU · XEM TRƯỚC + RENDER.

@@ -1,4 +1,4 @@
-# Pixel Video
+# Pixel Studio
 
 A code-drawn explainer video tool with a **locked PIXEL 16-BIT style**.
 Paste a script → pick a code-drawn animated scene per sentence → render.

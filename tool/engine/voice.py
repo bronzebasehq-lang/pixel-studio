@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PIXEL VIDEO - giong doc Kokoro 'am_adam' (sid 5) qua sherpa-onnx, chay local.
+PIXEL STUDIO - giong doc Kokoro 'am_adam' (sid 5) qua sherpa-onnx, chay local.
 
 - Neu sherpa_onnx import duoc trong python hien tai -> sinh truc tiep.
 - Neu khong -> goi tts_worker.py bang 1 python khac co sherpa_onnx
@@ -147,6 +147,6 @@ import contextlib  # noqa: E402  (dat cuoi de cac ham tren doc de hon)
 
 
 if __name__ == "__main__":
-    txt = sys.argv[1] if len(sys.argv) > 1 else "Hello from Pixel Video."
+    txt = sys.argv[1] if len(sys.argv) > 1 else "Hello from Pixel Studio."
     out = sys.argv[2] if len(sys.argv) > 2 else "voice-test.wav"
     print("duration:", synthesize(txt, out), "->", out)

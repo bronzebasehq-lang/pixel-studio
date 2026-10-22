@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PIXEL VIDEO - pipeline render video:
+PIXEL STUDIO - pipeline render video:
   kich ban -> cat cau -> giong am_adam tung cau -> ve frame pixel theo
   thoi luong giong that -> ffmpeg tung doan -> ghep (hard cut) ->
   tron nhac nen (neu co) -> loudnorm -16 LUFS -> Videos/video-<ngay-gio>.mp4
@@ -160,7 +160,7 @@ def render_job(sentences, music_path=None, out_path=None, progress=None,
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Pixel Video render")
+    ap = argparse.ArgumentParser(description="Pixel Studio render")
     ap.add_argument("--script", default=None)
     ap.add_argument("--script-file", default=None)
     ap.add_argument("--scenes", default=None,

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PIXEL VIDEO - web server (Python chuan, khong can cai them web framework).
+PIXEL STUDIO - web server (Python chuan, khong can cai them web framework).
 Mo http://localhost:8766 — giao dien 1 trang 3 cot dung mockup da duyet:
   Cot 1: dan kich ban -> tu cat cau -> dem cau.
   Cot 2: moi cau 1 the: chon mau canh (GIF preview DONG) + thoi gian uoc tinh.
@@ -73,7 +73,7 @@ PAGE = r"""<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<title>PIXEL VIDEO — Tool video vẽ bằng code (Pixel 16-bit)</title>
+<title>PIXEL STUDIO — Tool video vẽ bằng code (Pixel 16-bit)</title>
 <style>
 @font-face { font-family:'VT323'; src:url('/fonts/VT323.ttf'); }
 @font-face { font-family:'PS2P'; src:url('/fonts/PressStart2P.ttf'); }
@@ -113,7 +113,7 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
 </head>
 <body>
 <header>
-  <h1>PIXEL VIDEO <span class="tag">— tool video vẽ bằng code</span></h1>
+  <h1>PIXEL STUDIO <span class="tag">— tool video vẽ bằng code</span></h1>
   <p class="sub">Dán kịch bản → mỗi câu chọn 1 mẫu cảnh pixel vẽ bằng code → giọng cố định → Render. Không cần biết code.</p>
   <div class="lock"><b>PHONG CÁCH ĐÃ KHÓA: PIXEL 16-BIT</b> — lưới 320×180, phóng NEAREST, đổ bóng 2–3 tông + dithering. Mọi video từ tool này đều cùng 1 chất pixel.<br>
   <span class="c2">DỰ ÁN RIÊNG CHO KÊNH MỚI — tách biệt hẳn tool videos hiện tại.</span></div>
@@ -330,7 +330,7 @@ def main():
     previews_mod.ensure_previews(log=lambda m: print(m, flush=True))
     srv = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
     url = "http://localhost:%d" % PORT
-    print("PIXEL VIDEO dang chay o %s (Ctrl+C de tat)" % url, flush=True)
+    print("PIXEL STUDIO dang chay o %s (Ctrl+C de tat)" % url, flush=True)
     if not os.environ.get("PIXEL_NO_OPEN"):
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     try:

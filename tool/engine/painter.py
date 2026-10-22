@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PIXEL VIDEO - lop ve luoi pixel 320x180 (chuan PIXEL 16-BIT da khoa).
+PIXEL STUDIO - lop ve luoi pixel 320x180 (chuan PIXEL 16-BIT da khoa).
 
 Ke thua tu pixel-tool-mockup/build_pixel_tool_mockup.py (ban mockup da duyet),
 bo sung: sao nhap nhay theo thoi gian (tm), pulse phat sang, cac ham easing

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PIXEL VIDEO - phu de chay theo cau o day khung (font pixel VT323).
+PIXEL STUDIO - phu de chay theo cau o day khung (font pixel VT323).
 Khung day an toan: khoi phu de ket thuc o 85% chieu cao (cach day 15%).
 """
 import os

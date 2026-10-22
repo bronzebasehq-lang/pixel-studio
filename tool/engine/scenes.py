@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PIXEL VIDEO - 8 mau canh VE BANG CODE, TAT CA DEU CO CHUYEN DONG + HIEU UNG.
+PIXEL STUDIO - 8 mau canh VE BANG CODE, TAT CA DEU CO CHUYEN DONG + HIEU UNG.
 
 Moi ham canh nhan:
   p  : Painter (luoi 320x180, ve bang toa do chuan hoa 0..1)

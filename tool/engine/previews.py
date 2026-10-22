@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PIXEL VIDEO - sinh GIF preview DONG (~2 giay, loop) cho tung mau canh.
+PIXEL STUDIO - sinh GIF preview DONG (~2 giay, loop) cho tung mau canh.
 File ra: <tool>/previews/scene-0X.gif (480x270, 15fps x 30 frame).
 Server tu goi khi file chua co.
 """
