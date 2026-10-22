@@ -28,6 +28,8 @@ if os.path.isfile(os.path.join(TOOL_DIR, "ffmpeg.exe")):
 
 from PIL import Image  # noqa: E402
 
+import annotate as annot_mod  # noqa: E402
+import painter as painter_mod  # noqa: E402
 import scenes as scenes_mod  # noqa: E402
 import subtitles as sub_mod  # noqa: E402
 import voice as voice_mod  # noqa: E402
@@ -51,9 +53,18 @@ def _run(cmd, **kw):
     return r
 
 
+def _load_bg(bg_path):
+    """Tai anh nen lai cua 1 shot -> pixel hoa ve luoi 320x180."""
+    raw = Image.open(bg_path).convert("RGB")
+    return raw.resize((painter_mod.GW, painter_mod.GH), Image.LANCZOS)
+
+
 def _render_segment(seg_idx, text, scene_id, wav_path, seg_dur, work_dir,
-                    progress=None, total_frames=1, frames_done=0):
-    """Ve frame cua 1 canh, pipe thang vao ffmpeg kem tieng. Tra ve file mp4."""
+                    progress=None, total_frames=1, frames_done=0,
+                    params=None, annotation=None, bg_img=None):
+    """Ve frame cua 1 canh, pipe thang vao ffmpeg kem tieng. Tra ve file mp4.
+    V2: params = du kien tham so hoa canh; annotation = mui ten chu thich
+    {label, target}; bg_img = anh nen lai (PIL 320x180) thay canh code."""
     seg_path = os.path.join(work_dir, "seg-%02d.mp4" % seg_idx)
     n_frames = max(1, int(round(seg_dur * FPS)))
     black = Image.new("RGB", (OUT_W, OUT_H), (0, 0, 0))
@@ -77,8 +88,26 @@ def _render_segment(seg_idx, text, scene_id, wav_path, seg_dur, work_dir,
         for i in range(n_frames):
             tm = i / FPS
             t = i / (n_frames - 1) if n_frames > 1 else 1.0
-            frame = scenes_mod.draw_scene(scene_id, t, tm)
+            if bg_img is not None:
+                frame = bg_img.copy()
+            else:
+                frame = scenes_mod.draw_scene(scene_id, t, tm, params)
+            # mui ten chu thich: hinh ve o luoi thap (pop-in), chu o full-res
+            hi_layer = None
+            if annotation:
+                a_scale = annot_mod.pop_scale(tm)
+                if a_scale is not None:
+                    low_layer, hi_layer = annot_mod.annotation_layers(
+                        annotation["label"],
+                        int(annotation.get("target", 4)), a_scale)
+                    base = frame.convert("RGBA")
+                    base.alpha_composite(low_layer)
+                    frame = base.convert("RGB")
             frame = frame.resize((OUT_W, OUT_H), Image.NEAREST)
+            if hi_layer is not None:
+                base = frame.convert("RGBA")
+                base.alpha_composite(hi_layer)
+                frame = base.convert("RGB")
             frame = sub_mod.draw_subtitle(frame, text)
             # fade-in 0.35s dau + fade-out 0.25s cuoi (hieu ung dung chung)
             fade = min(tm / 0.35 if tm < 0.35 else 1.0,
@@ -111,7 +140,15 @@ def render_job(sentences, music_path=None, out_path=None, progress=None,
         wav = os.path.join(work_dir, "voice-%02d.wav" % i)
         dur = voice_mod.synthesize(s["text"], wav)
         seg_dur = dur + LEAD + TAIL
-        segs.append((s["text"], int(s["scene"]), wav, seg_dur))
+        annotation = s.get("annotation") or None
+        if annotation is not None and not str(
+                annotation.get("label", "")).strip():
+            annotation = None
+        bg_img = _load_bg(s["bg"]) if s.get("bg") else None
+        segs.append({"text": s["text"], "scene": int(s["scene"]),
+                     "wav": wav, "dur": seg_dur,
+                     "params": s.get("params") or None,
+                     "annotation": annotation, "bg_img": bg_img})
         total_dur += seg_dur
         log("[render] Cau %d/%d: giong %.2fs -> canh %.2fs (mau %d)"
             % (i + 1, len(sentences), dur, seg_dur, int(s["scene"])))
@@ -120,11 +157,12 @@ def render_job(sentences, music_path=None, out_path=None, progress=None,
     # 2) render tung doan
     seg_files = []
     done = 0
-    for i, (text, scene_id, wav, seg_dur) in enumerate(segs):
-        seg_files.append(_render_segment(i, text, scene_id, wav, seg_dur,
-                                         work_dir, progress, total_frames,
-                                         done))
-        done += int(round(seg_dur * FPS))
+    for i, sg in enumerate(segs):
+        seg_files.append(_render_segment(
+            i, sg["text"], sg["scene"], sg["wav"], sg["dur"], work_dir,
+            progress, total_frames, done, params=sg["params"],
+            annotation=sg["annotation"], bg_img=sg["bg_img"]))
+        done += int(round(sg["dur"] * FPS))
 
     # 3) ghep cac doan (hard cut, cung tham so nen copy thang)
     list_file = os.path.join(work_dir, "concat.txt")
@@ -141,7 +179,7 @@ def render_job(sentences, music_path=None, out_path=None, progress=None,
         out_path = os.path.join(TOOL_DIR, "Videos", "video-%s.mp4" % stamp)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     if music_path:
-        af = ("[1:a]aloop=loop=-1:size=2147483647,volume=0.12[m];"
+        af = ("[1:a]aloop=loop=-1:size=2147483647,volume=0.22[m];"
               "[0:a][m]amix=inputs=2:duration=first:dropout_transition=0,"
               "loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000[a]")
         _run(["ffmpeg", "-y", "-i", merged, "-i", music_path,

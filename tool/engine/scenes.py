@@ -14,13 +14,46 @@ Chuyen canh = HARD CUT. Cam zoompan tren anh tinh.
 """
 import math
 
-from painter import (PAL, Painter, clamp, dark, draw_background, draw_orb,
-                     cube, ease_in_quad, ease_out_back, ease_out_cubic, gear,
-                     lerp, lite, stars_for, window)
+from PIL import ImageFont
+
+from painter import (FVT, PAL, Painter, clamp, dark, draw_background,
+                     draw_orb, cube, ease_in_quad, ease_out_back,
+                     ease_out_cubic, gear, lerp, lite, stars_for, window)
+
+_FONT_CACHE = {}
+
+
+def _vt_font(size):
+    size = int(size)
+    if size not in _FONT_CACHE:
+        _FONT_CACHE[size] = ImageFont.truetype(FVT, size)
+    return _FONT_CACHE[size]
+
+
+def _text_centered_x(p, cx, y, text, size, color):
+    """Ve chu VT323 can giua theo chieu ngang quanh cx (y = mep tren, 0..1)."""
+    w_px = p.d.textlength(text, font=_vt_font(size))
+    p.text_vt(cx - (w_px / 2.0) / p.w, y, text, size, color)
+
+
+def _text_centered_xy(p, cx, cy, text, size, color):
+    """Ve chu VT323 can giua ca ngang + doc quanh diem (cx, cy) 0..1."""
+    fnt = _vt_font(size)
+    w_px = p.d.textlength(text, font=fnt)
+    bb = p.d.textbbox((0, 0), text, font=fnt)
+    glyph_cy_px = (bb[1] + bb[3]) / 2.0
+    x_px = cx * p.w - w_px / 2.0
+    y_px = cy * p.h - glyph_cy_px
+    p.text_vt(x_px / p.w, y_px / p.h, text, size, color)
+
+
+def _params(params):
+    return params if isinstance(params, dict) else {}
 
 # ================================================================= CANH 01
-def scene01(p, t, tm):
+def scene01(p, t, tm, params=None):
     """Qua cau nuot canh: mui ten ve dan, qua cau lon dan nuot dan canh vat."""
+    prm = _params(params)
     pal = p.pal
     draw_background(p, stars_for(101), tm)
     # mui ten cong ve dan theo t
@@ -35,7 +68,11 @@ def scene01(p, t, tm):
                 (cx, cy)], pal["orange"])
     # bong duoi qua cau lon theo kich thuoc cau
     grow = ease_out_cubic(window(t, 0.10, 0.75))
-    r_scale = lerp(0.45, 1.0, grow) * (1 + 0.012 * math.sin(tm * 1.6))
+    if prm.get("percent") is not None:
+        r_final = min(0.45 * (1 + float(prm["percent"]) / 100.0), 1.35)
+    else:
+        r_final = 1.0
+    r_scale = lerp(0.45, r_final, grow) * (1 + 0.012 * math.sin(tm * 1.6))
     p.ellipse(0.345 - 0.23 * r_scale, 0.845, 0.345 + 0.23 * r_scale, 0.890,
               pal["shadow"])
 
@@ -64,11 +101,22 @@ def scene01(p, t, tm):
     draw_orb(p, 0.880, 0.775, 0.043 * pu, 0.070 * pu)
     # qua cau chinh lon dan
     draw_orb(p, 0.345, 0.540, 0.225 * r_scale, 0.300 * r_scale)
+    # chu % ngay giua cau (chi khi co du kien percent), hien khi cau du lon
+    if prm.get("percent") is not None and grow > 0.45:
+        pv = prm["percent"]
+        txt = ("%d%%" % pv) if float(pv) == int(float(pv)) else ("%s%%" % pv)
+        _text_centered_xy(p, 0.345, 0.540, txt, 30, pal["window"])
+    # span_text (vd "5 years"): dong phu trong cau, duoi chu % neu co
+    if prm.get("span_text") and grow > 0.45:
+        span_y = 0.635 if prm.get("percent") is not None else 0.540
+        _text_centered_xy(p, 0.345, span_y, str(prm["span_text"]), 16,
+                          pal["window_d"])
 
 
 # ================================================================= CANH 02
-def scene02(p, t, tm):
+def scene02(p, t, tm, params=None):
     """Can so sanh: can tu ngang nghieng dan ve ben nang (co nay qua lai)."""
+    prm = _params(params)
     pal = p.pal
     draw_background(p, stars_for(102), tm)
     cx = 0.5
@@ -76,9 +124,11 @@ def scene02(p, t, tm):
     p.rect(0.489, 0.30, 0.500, 0.80, pal["violet"])
     p.poly([(cx, 0.76), (0.415, 0.885), (0.585, 0.885)], pal["violet"])
     p.poly([(cx, 0.76), (0.415, 0.885), (cx, 0.885)], pal["violet_d"])
-    # goc xoay: bat dau +0.149 (can NGANG) -> 0 (vi tri nghieng da duyet);
+    # goc xoay: bat dau +0.149 (can NGANG) -> a_final (vi tri nghieng da duyet);
+    # winner="b" -> a_final=0.298 (nghieng nguoc: dia B thap hon, guong cua v1);
     # ease_out_back vuot qua 1 mot chut -> can nay qua muc roi moi yen (wobble)
-    a = 0.149 * (1 - ease_out_back(window(t, 0.08, 0.62)))
+    a_final = 0.298 if prm.get("winner") == "b" else 0.0
+    a = lerp(0.149, a_final, ease_out_back(window(t, 0.08, 0.62)))
     a += 0.008 * math.sin(tm * 1.7) * window(t, 0.7, 0.3)  # rung nhe khi da yen
     piv = (0.5, 0.26)
     L0, R0 = (-0.365, 0.055), (0.365, -0.055)   # vector toi 2 dau can (ban duyet)
@@ -103,7 +153,11 @@ def scene02(p, t, tm):
          dark(pal["orange_d"]), pal["orange"])
     cube(p, lx - 0.031, ptop - 0.167, 0.058, 0.082, pal["window"],
          pal["window_d"], lite(pal["window"]))
-    p.text_vt(lx - 0.075, ptop - 0.300, "A", 34, pal["cream"])
+    if prm.get("label_a"):
+        _text_centered_x(p, lx, ptop - 0.300, str(prm["label_a"]), 18,
+                         pal["cream"])
+    else:
+        p.text_vt(lx - 0.075, ptop - 0.300, "A", 34, pal["cream"])
     # ---- dia phai + qua cau cyan pulse phat sang
     p.line(rx, ry, rx, ry + 0.100, pal["cream"], wpx=1)
     ptop_r = ry + 0.100
@@ -117,12 +171,16 @@ def scene02(p, t, tm):
     p.circle(rx, ocy, 0.052 * pu, pal["halo_teal"])
     p.circle(rx, ocy, 0.036, pal["cyan"])
     p.circle(rx - 0.012, ocy - 0.012, 0.011, (225, 252, 255))
-    p.text_vt(rx - 0.018, ptop_r - 0.230, "B", 34, pal["cream"])
+    if prm.get("label_b"):
+        _text_centered_x(p, rx, ptop_r - 0.230, str(prm["label_b"]), 18,
+                         pal["cream"])
+    else:
+        p.text_vt(rx - 0.018, ptop_r - 0.230, "B", 34, pal["cream"])
     p.circle(cx, 0.26, 0.017, pal["orange"])
 
 
 # ================================================================= CANH 03
-def scene03(p, t, tm):
+def scene03(p, t, tm, params=None):
     """Mang luoi node: node sang lan luot, xung chay doc duong noi."""
     pal = p.pal
     draw_background(p, stars_for(103), tm, ground=False)
@@ -162,14 +220,27 @@ def scene03(p, t, tm):
 
 
 # ================================================================= CANH 04
-def scene04(p, t, tm):
+def scene04(p, t, tm, params=None):
     """Dong thoi gian: truc ve dan, cac moc pop-in lan luot trai -> phai."""
+    prm = _params(params)
     pal = p.pal
     draw_background(p, stars_for(104), tm, ground=False)
     y = 0.55
     xs = [0.115, 0.307, 0.5, 0.692, 0.885]
     rs = [0.013, 0.017, 0.021, 0.027, 0.033]
     cols = [pal["skyblue"], pal["mint"], pal["cyan"], pal["orange"], pal["red"]]
+    years = prm.get("years") or None
+    if years:
+        years = list(years)[:5]
+        n_yr = len(years)
+        if n_yr == 1:
+            xs = [0.5]
+        else:
+            xs = [0.115 + (0.885 - 0.115) * i / (n_yr - 1)
+                  for i in range(n_yr)]
+        rs = [lerp(0.013, 0.033, i / (n_yr - 1) if n_yr > 1 else 0.0)
+              for i in range(n_yr)]
+        cols = [cols[i % len(cols)] for i in range(n_yr)]
     prog = ease_out_cubic(window(t, 0.0, 0.9))
     x_end = lerp(0.07, 0.93, prog)
     p.line(0.07, y, x_end, y, pal["axis"], wpx=2)
@@ -219,12 +290,18 @@ def scene04(p, t, tm):
         p.circle(x, y, r * s, c)
         if lt > 0.5:
             p.circle(x, y, r * 0.38 * s, (245, 248, 255))
-            p.text_vt(x - 0.012, y + 0.045, str(i + 1), 22, pal["star_dim"])
+            if years:
+                _text_centered_x(p, x, y + 0.045, str(years[i]), 15,
+                                 pal["star_dim"])
+            else:
+                p.text_vt(x - 0.012, y + 0.045, str(i + 1), 22,
+                          pal["star_dim"])
 
 
 # ================================================================= CANH 05
-def scene05(p, t, tm):
+def scene05(p, t, tm, params=None):
     """Roi & xep chong: cac khoi roi lan luot xep thanh dong ngay cang cao."""
+    prm = _params(params)
     pal = p.pal
     draw_background(p, stars_for(105), tm)
     p.ellipse(0.19, 0.845, 0.77, 0.885, pal["shadow"])
@@ -240,8 +317,27 @@ def scene05(p, t, tm):
         (0.470, 0.440, pal["skyblue"], pal["skyblue_d"], lite(pal["skyblue"])),
         (0.625, 0.650, pal["orange"], pal["orange_d"], lite(pal["orange"])),
     ]
+    if prm.get("quantity_value") is not None:
+        # 6 vi tri mo rong: 2 hang day (2 ben), 2 hang 2, 2 hang 3
+        extra = [
+            (0.190, 0.755, pal["skyblue"], pal["skyblue_d"],
+             lite(pal["skyblue"])),
+            (0.690, 0.755, pal["pink"], pal["pink_d"], lite(pal["pink"])),
+            (0.252, 0.650, (38, 150, 190), (26, 104, 134), (86, 182, 214)),
+            (0.750, 0.650, pal["violet"], pal["violet_d"],
+             lite(pal["violet"])),
+            (0.315, 0.545, pal["mint"], pal["green_d"], lite(pal["mint"])),
+            (0.565, 0.545, pal["orange"], pal["orange_d"],
+             lite(pal["orange"])),
+        ]
+        qv = float(prm["quantity_value"])
+        n_blocks = int(clamp(4 + int(2.0 * math.log10(max(qv, 1.0))),
+                             4, 14))
+        blocks = (blocks + extra)[:n_blocks]
+    # nhieu khoi hon 8: nen khoang cach roi de khoi cuoi van cham dat ~0.945
+    step = 0.105 if len(blocks) <= 8 else 0.735 / (len(blocks) - 1)
     for k, (x, y_land, c, cd, cl) in enumerate(blocks):
-        lt = window(t, 0.04 + k * 0.105, 0.17)
+        lt = window(t, 0.04 + k * step, 0.17)
         if lt <= 0:
             continue
         if lt < 1:  # dang roi: nhanh dan (ease-in) + vet chuyen dong
@@ -252,11 +348,15 @@ def scene05(p, t, tm):
         else:  # da cham dat: nay nhe 1 nhip ngay khi tiep dat
             y = y_land
         cube(p, x, y, W_, H_, c, cd, cl)
+    if prm.get("quantity_text") and t > 0.85:
+        _text_centered_x(p, 0.5, 0.06, str(prm["quantity_text"]), 22,
+                         pal["cream"])
 
 
 # ================================================================= CANH 06
-def scene06(p, t, tm):
+def scene06(p, t, tm, params=None):
     """Ban do hanh trinh: duong dut net ve dan, chang sang lan luot, ghim pulse."""
+    prm = _params(params)
     pal = p.pal
     draw_background(p, stars_for(106), tm)
     p0, p1, p2, p3 = ((0.115, 0.778), (0.448, 0.926),
@@ -280,17 +380,30 @@ def scene06(p, t, tm):
         x, y = pts[min(n_show, 90)]
         p.circle(x, y, 0.010, pal["green"])
         p.circle(x, y, 0.004, (240, 255, 250))
-    for tt, c in [(0.0, pal["green"]), (0.34, pal["skyblue"]),
-                  (0.62, pal["orange"]), (0.83, pal["violet"])]:
+    stages = prm.get("stages") or None
+    if stages:
+        stages = int(clamp(int(stages), 2, 5))
+        mid_cols = [pal["skyblue"], pal["orange"], pal["violet"],
+                    pal["skyblue"]]
+        nodes = [(0.0, pal["green"])] + [
+            (i / stages, mid_cols[(i - 1) % len(mid_cols)])
+            for i in range(1, stages)]
+        flag_tt = (stages - 1) / stages
+    else:
+        nodes = [(0.0, pal["green"]), (0.34, pal["skyblue"]),
+                 (0.62, pal["orange"]), (0.83, pal["violet"])]
+        flag_tt = 0.62
+    for tt, c in nodes:
         if prog >= tt - 0.01:
             s = ease_out_back(window(prog, tt, 0.10))
             x, y = bez(tt)
             p.circle(x, y, 0.017 * s, c)
             if s > 0.7:
                 p.circle(x, y, 0.006, (245, 248, 255))
-    if prog >= 0.60:  # co o chang giua
-        fx, fy = bez(0.62)
-        s = ease_out_back(window(prog, 0.60, 0.10))
+    flag_start = flag_tt - 0.02
+    if prog >= flag_start:  # co o chang trung gian cuoi
+        fx, fy = bez(flag_tt)
+        s = ease_out_back(window(prog, flag_start, 0.10))
         p.line(fx, fy - 0.010, fx, fy - 0.115 * s, pal["cream"], wpx=1)
         p.poly([(fx, fy - 0.115 * s), (fx + 0.038 * s, fy - 0.092 * s),
                 (fx, fy - 0.068 * s)], pal["orange"])
@@ -309,7 +422,7 @@ def scene06(p, t, tm):
 
 
 # ================================================================= CANH 07
-def scene07(p, t, tm):
+def scene07(p, t, tm, params=None):
     """Co may van hanh: banh rang quay an khop, bang chuyen chay, khoi di chuyen."""
     pal = p.pal
     draw_background(p, stars_for(107), tm)
@@ -347,7 +460,7 @@ def scene07(p, t, tm):
 
 
 # ================================================================= CANH 08
-def scene08(p, t, tm):
+def scene08(p, t, tm, params=None):
     """Nguoi trong canh: nhan vat go may, bong bong suy nghi hien dan + qua cau."""
     pal = p.pal
     draw_background(p, stars_for(108, 80), tm)
@@ -442,8 +555,8 @@ SCENES = {
 }
 
 
-def draw_scene(scene_id, t, tm):
+def draw_scene(scene_id, t, tm, params=None):
     """Ve 1 frame cua canh len luoi 320x180, tra ve PIL Image (RGB)."""
     p = Painter()
-    SCENES[int(scene_id)][2](p, clamp(t), max(0.0, tm))
+    SCENES[int(scene_id)][2](p, clamp(t), max(0.0, tm), params=params)
     return p.img

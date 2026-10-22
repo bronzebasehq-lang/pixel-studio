@@ -41,7 +41,7 @@ def draw_subtitle(img, text):
     if not text or not text.strip():
         return img
     W, H = img.size
-    size = max(30, int(H * 0.052))          # ~56px o 1080p
+    size = int(H * 0.0574)                   # chuan chu net v3: ~62px o 1080p
     font = _font(size)
     probe = ImageDraw.Draw(img)
     lines = _wrap(probe, text.strip(), font, int(W * 0.84))
@@ -59,7 +59,7 @@ def draw_subtitle(img, text):
     y = top + int(H * 0.009)
     for ln in lines:
         w = d.textlength(ln, font=font)
-        d.text(((W - w) / 2 + 2, y + 2), ln, font=font, fill=(0, 0, 0))
-        d.text(((W - w) / 2, y), ln, font=font, fill=(245, 246, 252))
+        d.text(((W - w) / 2, y), ln, font=font, fill=(245, 246, 252),
+               stroke_width=3, stroke_fill=(0, 0, 0))
         y += line_h
     return img

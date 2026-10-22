@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
 """
-PIXEL STUDIO - web server (Python chuan, khong can cai them web framework).
-Mo http://localhost:8766 — giao dien 1 trang 3 cot dung mockup da duyet:
-  Cot 1: dan kich ban -> tu cat cau -> dem cau.
-  Cot 2: moi cau 1 the: chon mau canh (GIF preview DONG) + thoi gian uoc tinh.
-  Cot 3: xem truoc + giong khoa am_adam + nhac nen + RENDER -> tien trinh
-         -> mo video / mo thu muc Videos.
+PIXEL STUDIO V2 - web server (Python chuan, khong can web framework).
+Mo http://localhost:8766 — giao dien 3 cot:
+  Cot 1: dan kich ban -> tu cat cau -> TU GAN CANH theo noi dung
+         (luat tu khoa chay offline, cong tac mac dinh BAT) + xem truoc
+         kich ban co to mau manh moi.
+  Cot 2: moi cau 1 the: GIF preview + nhan TU GAN + ly do + chip du kien
+         + thanh do khop + o doi tay (doi tay khoa the) + nhan chu thich
+         mui ten + chon anh nen lai.
+  Cot 3: xem truoc + giong khoa am_adam + thu vien nhac retro + RENDER.
 Du an RIENG cho kenh moi — khong dung chung code voi tool videos cu.
 """
+import base64
 import json
+import mimetypes
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -22,14 +28,17 @@ TOOL_DIR = os.path.dirname(os.path.abspath(__file__))
 ENGINE_DIR = os.path.join(TOOL_DIR, "engine")
 sys.path.insert(0, ENGINE_DIR)
 
+import autosuggest as auto_mod  # noqa: E402
 import previews as previews_mod  # noqa: E402
 import render as render_mod  # noqa: E402
 import scenes as scenes_mod  # noqa: E402
 
 PORT = 8766
 VIDEOS_DIR = os.path.join(TOOL_DIR, "Videos")
-MUSIC_DIR = os.path.join(TOOL_DIR, "Music")
+MUSIC_DIR = os.path.join(TOOL_DIR, "music")
+UPLOADS_DIR = os.path.join(TOOL_DIR, "uploads")
 FONTS_DIR = os.path.join(TOOL_DIR, "fonts")
+IMG_EXTS = (".png", ".jpg", ".jpeg", ".webp")
 
 _job = {"state": "idle", "progress": 0.0, "video": None, "error": None,
         "log": []}
@@ -73,7 +82,7 @@ PAGE = r"""<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<title>PIXEL STUDIO — Tool video vẽ bằng code (Pixel 16-bit)</title>
+<title>PIXEL STUDIO V2 — Tự gán cảnh + mũi tên chú thích + nhạc retro</title>
 <style>
 @font-face { font-family:'VT323'; src:url('/fonts/VT323.ttf'); }
 @font-face { font-family:'PS2P'; src:url('/fonts/PressStart2P.ttf'); }
@@ -85,18 +94,54 @@ h1 .tag { font-family:'VT323'; font-size:22px; color:#ffd84f; }
 .sub { color:#a8a8c8; margin:6px 0 10px; font-size:14px; }
 .lock { border:2px solid #584ca8; background:#1e1a38; padding:8px 14px; font-size:13.5px; line-height:1.5; }
 .lock b { color:#ffd84f; } .lock .c2 { color:#40c8dc; font-weight:bold; }
+.lock .c3 { color:#46c878; font-weight:bold; }
 main { display:grid; grid-template-columns: 30% 37% 33%; gap:14px; padding:14px 22px 26px; }
 .panel { border:2px solid #584ca8; background:#181530; padding:14px; position:relative; }
 .panel h2 { font-family:'VT323'; font-size:24px; color:#40c8dc; margin:0 0 10px; font-weight:normal; }
-textarea { width:100%; height:300px; background:#100e28; color:#fff; border:1px solid #584ca8; padding:10px; font-size:15px; resize:vertical; }
+textarea { width:100%; height:270px; background:#100e28; color:#fff; border:1px solid #584ca8; padding:10px; font-size:15px; resize:vertical; }
 .chips { margin:10px 0; }
 .chip { display:inline-block; border:2px solid #40c8dc; color:#40c8dc; padding:4px 12px; margin-right:8px; font-family:'VT323'; font-size:19px; }
+.chip.warn { border-color:#ff9d5c; color:#ff9d5c; }
 .note { color:#a8a8c8; font-size:13.5px; line-height:1.55; }
-.card { border:2px solid #3a3570; background:#221f42; padding:10px; margin-bottom:12px; display:flex; gap:10px; }
-.card img { width:176px; height:99px; image-rendering:pixelated; border:1px solid #584ca8; background:#000; }
+.toggleRow { display:flex; align-items:center; gap:10px; margin:12px 0 4px; }
+.toggleRow .tlbl { font-family:'VT323'; font-size:21px; color:#40c8dc; }
+.switch { position:relative; width:56px; height:28px; flex:none; }
+.switch input { opacity:0; width:0; height:0; }
+.slider { position:absolute; inset:0; background:#2a2650; border:2px solid #584ca8; cursor:pointer; }
+.slider:before { content:''; position:absolute; width:20px; height:20px; left:3px; top:2px; background:#5a548a; transition:.15s; }
+.switch input:checked + .slider { background:#123d24; border-color:#46c878; }
+.switch input:checked + .slider:before { transform:translateX(26px); background:#46c878; }
+#toggleState { font-family:'VT323'; font-size:21px; color:#46c878; }
+#hlPreview { border:1px solid #584ca8; background:#100e28; padding:10px 12px; margin-top:12px; font-size:14.5px; line-height:1.6; max-height:260px; overflow:auto; }
+#hlPreview .snum { color:#a8a8c8; }
+#hlPreview p { margin:0 0 8px; }
+mark { background:none; font-weight:bold; padding:0 1px; }
+.hl-pct { color:#ffd84f; } .hl-vs { color:#40c8dc; } .hl-step { color:#46c878; }
+.hl-year { color:#ff9d5c; } .hl-num { color:#ffd84f; }
+.card { border:2px solid #3a3570; background:#221f42; padding:10px; margin-bottom:12px; }
+.card.manual { border-color:#ffd84f; }
+.card.unassigned { border-color:#ff5d73; }
+.card .top { display:flex; gap:10px; }
+.card img.pv { width:176px; height:99px; image-rendering:pixelated; border:1px solid #584ca8; background:#000; flex:none; }
 .card .txt { font-size:14.5px; margin-bottom:6px; }
-.card select, .row select, .row input { background:#100e28; color:#fff; border:1px solid #a8a8c8; padding:6px; font-size:14px; width:100%; }
+.card select, .row select, .card input[type=text] { background:#100e28; color:#fff; border:1px solid #a8a8c8; padding:6px; font-size:14px; width:100%; }
 .card .time { color:#a8a8c8; font-size:12.5px; margin-top:5px; }
+.autoLbl { color:#46c878; font-weight:bold; font-size:13.5px; margin:4px 0 2px; }
+.manualLbl { color:#ffd84f; font-weight:bold; font-size:13.5px; margin:4px 0 2px; }
+.reason { color:#c8c8e8; font-size:13px; line-height:1.45; }
+.fchips { margin:6px 0 2px; }
+.fchip { display:inline-block; border:2px solid #40c8dc; color:#40c8dc; padding:2px 10px; margin:0 6px 4px 0; font-family:'VT323'; font-size:18px; }
+.matchbar { margin:5px 0 2px; font-size:12.5px; color:#a8a8c8; }
+.matchbar .cell { display:inline-block; width:17px; height:11px; margin-right:3px; background:#2a2650; border:1px solid #584ca8; vertical-align:middle; }
+.matchbar .cell.on { background:#46c878; }
+.warnTxt { color:#ff5d73; font-weight:bold; font-size:13.5px; margin:4px 0; }
+.lowTxt { color:#ff9d5c; font-size:12.5px; }
+.card .lbl2 { font-family:'VT323'; font-size:18px; color:#40c8dc; display:block; margin:9px 0 4px; }
+.card .annotRow { display:flex; gap:8px; margin-top:4px; }
+.card .annotRow input { flex:1.4; } .card .annotRow select { flex:1; }
+.card .bgRow { display:flex; gap:8px; align-items:center; margin-top:6px; }
+.card .bgRow .bgName { font-size:12.5px; color:#a8a8c8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+button.mini { background:#221f42; border:2px solid #40c8dc; color:#40c8dc; padding:5px 10px; cursor:pointer; font-family:'VT323'; font-size:16px; flex:none; }
 label.lbl { font-family:'VT323'; font-size:20px; color:#40c8dc; display:block; margin:12px 0 5px; }
 #previewBox { border:2px solid #584ca8; background:#000; }
 #previewBox img { width:100%; display:block; image-rendering:pixelated; }
@@ -113,23 +158,30 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
 </head>
 <body>
 <header>
-  <h1>PIXEL STUDIO <span class="tag">— tool video vẽ bằng code</span></h1>
-  <p class="sub">Dán kịch bản → mỗi câu chọn 1 mẫu cảnh pixel vẽ bằng code → giọng cố định → Render. Không cần biết code.</p>
-  <div class="lock"><b>PHONG CÁCH ĐÃ KHÓA: PIXEL 16-BIT</b> — lưới 320×180, phóng NEAREST, đổ bóng 2–3 tông + dithering. Mọi video từ tool này đều cùng 1 chất pixel.<br>
+  <h1>PIXEL STUDIO <span class="tag">— V2 · tool video vẽ bằng code</span></h1>
+  <p class="sub">Dán kịch bản → tool TỰ GÁN cảnh theo nội dung từng câu → chỉnh tay nếu muốn → Render. Không cần biết code.</p>
+  <div class="lock"><b>PHONG CÁCH ĐÃ KHÓA: PIXEL 16-BIT</b> — lưới 320×180, phóng NEAREST, đổ bóng 2–3 tông + dithering.<br>
+  <span class="c3">MỚI Ở V2: TỰ GÁN CẢNH theo nội dung (luật từ khóa, chạy offline) · MŨI TÊN CHÚ THÍCH · ẢNH NỀN LAI · THƯ VIỆN NHẠC RETRO 11 BÀI.</span><br>
   <span class="c2">DỰ ÁN RIÊNG CHO KÊNH MỚI — tách biệt hẳn tool videos hiện tại.</span></div>
 </header>
 <main>
   <section class="panel">
     <h2>1 · KỊCH BẢN (dán chữ vào)</h2>
-    <textarea id="script">You've seen the terms. LLM. R.A.G. AI Agent. MCP. System Prompt. Sounds like a PhD thesis. Sounds complicated.</textarea>
-    <div class="chips"><span class="chip" id="chipCount">0 câu thoại</span><span class="chip" id="chipDur">~0 giây</span></div>
-    <p class="note">Tool tự cắt kịch bản theo từng câu. Mỗi câu = 1 cảnh, thời lượng cảnh = đúng thời lượng giọng đọc câu đó.<br><br>
-    Mẹo: muốn AI đọc đánh vần 1 thuật ngữ (ví dụ RAG) thì viết "R.A.G." trong kịch bản.<br><br>
-    Thư viện mẫu cảnh hiện có: <b>8 mẫu</b> — Quả cầu nuốt cảnh · Cân so sánh · Mạng lưới node · Dòng thời gian · Rơi &amp; xếp chồng · Bản đồ hành trình · Cỗ máy vận hành · Người trong cảnh.<br><br>
-    Mọi mẫu cảnh đều CÓ CHUYỂN ĐỘNG + HIỆU ỨNG (cầu lớn dần, cân nghiêng, node sáng lần lượt, bánh răng quay...). Không có cảnh tĩnh.</p>
+    <textarea id="script">It grew 300% in just 3 years. ChatGPT vs Claude: which one wins? First, connect the tools. Then the system runs itself.</textarea>
+    <div class="toggleRow">
+      <span class="tlbl">TỰ GÁN CẢNH THEO NỘI DUNG:</span>
+      <label class="switch"><input type="checkbox" id="autoToggle" checked><span class="slider"></span></label>
+      <span id="toggleState">BẬT</span>
+    </div>
+    <p class="note">Dán script xong, tool tự đọc từng câu và gán cảnh khớp nội dung (chạy 100% trên máy bạn, không gửi đi đâu). Gán chưa đúng ý thì đổi tay ở cột 2 — lựa chọn của bạn luôn thắng.</p>
+    <div id="hlPreview"></div>
+    <p class="note" style="margin-top:8px">Manh mối gán cảnh: <span class="hl-pct">■ số %/tăng</span> · <span class="hl-vs">■ so sánh</span> · <span class="hl-step">■ thứ tự bước</span> · <span class="hl-year">■ mốc năm</span></p>
+    <div class="chips"><span class="chip" id="chipCount">0 câu thoại</span><span class="chip" id="chipAuto">0 / 0 đã TỰ GÁN</span><span class="chip" id="chipDur">~0 giây</span></div>
+    <p class="note">Thư viện mẫu cảnh hiện có: <b>8 mẫu</b> — Quả cầu nuốt cảnh · Cân so sánh · Mạng lưới node · Dòng thời gian · Rơi &amp; xếp chồng · Bản đồ hành trình · Cỗ máy vận hành · Người trong cảnh.<br><br>
+    Mọi mẫu cảnh đều CÓ CHUYỂN ĐỘNG + HIỆU ỨNG. Dữ kiện trích từ câu (số %, tên 2 phía, số năm...) được đưa thẳng vào hình khi render.</p>
   </section>
   <section class="panel">
-    <h2>2 · TỪNG CÂU — CHỌN MẪU CẢNH</h2>
+    <h2>2 · TỪNG CÂU — TỰ GÁN CẢNH</h2>
     <div id="cards"><p class="note">Đang tải...</p></div>
   </section>
   <section class="panel">
@@ -140,9 +192,9 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
     <div class="row"><select id="voice" disabled><option>am_adam — giọng cố định của kênh</option></select></div>
     <label class="lbl">Định dạng:</label>
     <div class="row"><select id="fmt" disabled><option>Ngang 16:9 (1920×1080)</option></select></div>
-    <label class="lbl">Nhạc nền:</label>
+    <label class="lbl">Nhạc nền (thư viện retro có sẵn):</label>
     <div class="row"><select id="music"><option value="">Không nhạc</option></select></div>
-    <p class="note">Muốn dùng nhạc: chép file nhạc (.mp3/.wav) vào thư mục <b>Music</b> của tool rồi tải lại trang. Nhạc sẽ tự lặp + trộn nhỏ dưới giọng đọc.</p>
+    <p class="note">11 bài nhạc chiptune 8/16-bit đã tích hợp sẵn trong tool — chọn 1 bài, nhạc tự lặp liền mạch hết video và nằm nhỏ dưới giọng đọc. Muốn thêm bài riêng: chép file .mp3 vào thư mục <b>music</b> của tool rồi tải lại trang.</p>
     <button id="renderBtn">▶ RENDER VIDEO</button>
     <div id="barWrap"><div id="bar"></div></div>
     <div id="status"></div>
@@ -154,61 +206,250 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
 </main>
 <script>
 const SCENES = __SCENES_JSON__;
+const TARGETS = ['Trên – trái','Trên – giữa','Trên – phải','Giữa – trái','Chính giữa','Giữa – phải','Dưới – trái','Dưới – giữa','Dưới – phải'];
 let sentences = [];
+let cardsState = [];
+let analyzeSeq = 0;
+
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function splitScript(text){
   return text.split(/(?<=[.!?])\s+|\n+/).map(s=>s.trim()).filter(Boolean);
 }
 function estDur(txt){ return Math.max(1.2, txt.split(/\s+/).length / 2.67); }
-function rebuild(){
-  const ta = document.getElementById('script');
-  sentences = splitScript(ta.value);
-  document.getElementById('chipCount').textContent = sentences.length + ' câu thoại';
-  const tot = sentences.reduce((a,s)=>a+estDur(s),0);
-  document.getElementById('chipDur').textContent = '~' + Math.round(tot) + ' giây';
+function autoOn(){ return document.getElementById('autoToggle').checked; }
+
+function hlSentence(text, highlights){
+  if (!highlights || !highlights.length) return esc(text);
+  const hs = highlights.slice().sort((a,b)=>a.start-b.start);
+  let out = '', pos = 0;
+  hs.forEach(h => {
+    if (h.start < pos || h.end > text.length) return;
+    out += esc(text.slice(pos, h.start)) + '<mark class="' + h.cls + '">' + esc(text.slice(h.start, h.end)) + '</mark>';
+    pos = h.end;
+  });
+  return out + esc(text.slice(pos));
+}
+
+function renderHlPreview(results){
+  const box = document.getElementById('hlPreview');
+  if (!autoOn()){ box.innerHTML = '<p class="note">Tự gán đang TẮT — bạn chọn cảnh tay cho từng câu ở cột 2.</p>'; return; }
+  box.innerHTML = sentences.map((s,i) =>
+    '<p><span class="snum">' + (i+1) + '.</span> ' + hlSentence(s, results && results[i] ? results[i].highlights : []) + '</p>'
+  ).join('');
+}
+
+function barHTML(m){
+  let s = '';
+  for (let i=0;i<5;i++) s += '<span class="cell' + (i < m ? ' on' : '') + '"></span>';
+  return s;
+}
+
+function renderCards(results){
   const box = document.getElementById('cards');
   box.innerHTML = '';
-  sentences.forEach((s, i) => {
-    const def = SCENES[i % SCENES.length];
-    const card = document.createElement('div'); card.className='card';
-    card.innerHTML = '<img src="/previews/scene-0'+def.id+'.gif" alt="">' +
-      '<div style="flex:1"><div class="txt"></div>' +
-      '<select data-i="'+i+'"></select>' +
-      '<div class="time">Ước tính ~'+estDur(s).toFixed(1)+'s · hiệu ứng: hiện dần + chuyển động riêng của mẫu</div></div>';
-    card.querySelector('.txt').textContent = s;
-    const sel = card.querySelector('select');
+  const prev = cardsState;
+  cardsState = sentences.map((s, i) => {
+    const old = (prev[i] && prev[i].text === s) ? prev[i] : null;
+    const st = old || { text:s, scene:null, source:'none', auto:null, label:'', target:4, bgFile:null, bgName:'' };
+    st.text = s;
+    if (!old){
+      if (autoOn() && results && results[i]){
+        st.auto = results[i];
+        st.scene = results[i].scene;
+        st.source = results[i].scene ? 'auto' : 'none';
+      } else if (!autoOn()){
+        const def = SCENES[i % SCENES.length];
+        st.scene = def.id; st.source = 'default'; st.auto = null;
+      }
+    }
+    return st;
+  });
+  let autoCount = 0;
+  cardsState.forEach((st, i) => {
+    const s = st.text;
+    if (st.source === 'auto') autoCount++;
+    const card = document.createElement('div');
+    card.className = 'card' + (st.source === 'manual' ? ' manual' : '') + (st.scene ? '' : ' unassigned');
+    const top = document.createElement('div'); top.className = 'top';
+    const img = document.createElement('img'); img.className = 'pv';
+    img.src = '/previews/scene-0' + (st.scene || 1) + '.gif';
+    img.alt = '';
+    img.addEventListener('click', () => {
+      if (st.scene) document.getElementById('previewImg').src = img.src;
+    });
+    const right = document.createElement('div'); right.style.flex = '1';
+    const txt = document.createElement('div'); txt.className = 'txt'; txt.textContent = s;
+    right.appendChild(txt);
+    if (st.auto && st.source !== 'default'){
+      if (st.source === 'auto'){
+        const lb = document.createElement('div'); lb.className = 'autoLbl';
+        lb.textContent = '■ TỰ GÁN: ' + st.auto.name;
+        right.appendChild(lb);
+        const rs = document.createElement('div'); rs.className = 'reason';
+        rs.textContent = 'Lý do: ' + st.auto.reason;
+        right.appendChild(rs);
+        if (st.auto.chips && st.auto.chips.length){
+          const ch = document.createElement('div'); ch.className = 'fchips';
+          ch.innerHTML = st.auto.chips.map(c => '<span class="fchip">' + esc(c) + '</span>').join('');
+          right.appendChild(ch);
+        }
+        const mb = document.createElement('div'); mb.className = 'matchbar';
+        mb.innerHTML = 'Độ khớp manh mối: ' + barHTML(st.auto.match || 0) +
+          (st.auto.low_match ? ' <span class="lowTxt">khớp thấp — nên kiểm tra lại</span>' : '');
+        right.appendChild(mb);
+      } else if (st.source === 'manual'){
+        const lb = document.createElement('div'); lb.className = 'manualLbl';
+        lb.textContent = '✎ ĐỔI TAY — lựa chọn của bạn đã khóa cho câu này';
+        right.appendChild(lb);
+      }
+    }
+    if (!st.scene){
+      const w = document.createElement('div'); w.className = 'warnTxt';
+      w.textContent = '⚠ CHƯA GÁN — câu này chưa có cảnh, hãy chọn tay bên dưới trước khi Render.';
+      right.appendChild(w);
+    }
+    const selLbl = document.createElement('span'); selLbl.className = 'lbl2';
+    selLbl.textContent = 'MẪU CẢNH (đổi tay ở đây):';
+    right.appendChild(selLbl);
+    const sel = document.createElement('select');
+    const empty = document.createElement('option');
+    empty.value = ''; empty.textContent = '— chọn mẫu cảnh —';
+    sel.appendChild(empty);
     SCENES.forEach(sc => {
       const o = document.createElement('option');
       o.value = sc.id; o.textContent = sc.id + ' · ' + sc.name;
-      if (sc.id === def.id) o.selected = true;
       sel.appendChild(o);
     });
+    sel.value = st.scene ? String(st.scene) : '';
     sel.addEventListener('change', () => {
-      card.querySelector('img').src = '/previews/scene-0'+sel.value+'.gif';
-      document.getElementById('previewImg').src = '/previews/scene-0'+sel.value+'.gif';
+      st.scene = sel.value ? parseInt(sel.value) : null;
+      st.source = sel.value ? 'manual' : 'none';
+      renderCards(null);
     });
-    card.querySelector('img').addEventListener('click', () => {
-      document.getElementById('previewImg').src = '/previews/scene-0'+sel.value+'.gif';
+    right.appendChild(sel);
+    const tm = document.createElement('div'); tm.className = 'time';
+    tm.textContent = 'Ước tính ~' + estDur(s).toFixed(1) + 's · hiệu ứng: hiện dần + chuyển động riêng của mẫu';
+    right.appendChild(tm);
+    top.appendChild(img); top.appendChild(right);
+    card.appendChild(top);
+    const aLbl = document.createElement('span'); aLbl.className = 'lbl2';
+    aLbl.textContent = 'MŨI TÊN CHÚ THÍCH (tùy chọn):';
+    card.appendChild(aLbl);
+    const aRow = document.createElement('div'); aRow.className = 'annotRow';
+    const aIn = document.createElement('input'); aIn.type = 'text';
+    aIn.placeholder = 'Chữ nhãn — vd: 300% GROWTH (để trống = không chú thích)';
+    aIn.value = st.label || '';
+    aIn.addEventListener('input', () => { st.label = aIn.value; });
+    const tSel = document.createElement('select');
+    TARGETS.forEach((name, idx) => {
+      const o = document.createElement('option');
+      o.value = idx; o.textContent = 'Điểm chỉ tới: ' + name;
+      tSel.appendChild(o);
     });
+    tSel.value = String(st.target != null ? st.target : 4);
+    tSel.addEventListener('change', () => { st.target = parseInt(tSel.value); });
+    aRow.appendChild(aIn); aRow.appendChild(tSel);
+    card.appendChild(aRow);
+    const bLbl = document.createElement('span'); bLbl.className = 'lbl2';
+    bLbl.textContent = 'ẢNH NỀN LAI (tùy chọn):';
+    card.appendChild(bLbl);
+    const bRow = document.createElement('div'); bRow.className = 'bgRow';
+    const fIn = document.createElement('input'); fIn.type = 'file';
+    fIn.accept = 'image/png,image/jpeg,image/webp'; fIn.style.display = 'none';
+    const bBtn = document.createElement('button'); bBtn.className = 'mini';
+    bBtn.textContent = st.bgFile ? 'Đổi ảnh nền' : 'Chọn ảnh PNG nền';
+    const bName = document.createElement('span'); bName.className = 'bgName';
+    bName.textContent = st.bgFile ? ('Đang dùng: ' + st.bgName + ' (nền ảnh thay cảnh code)') : 'Chưa có — đang dùng cảnh vẽ bằng code.';
+    bBtn.addEventListener('click', () => fIn.click());
+    fIn.addEventListener('change', async () => {
+      const f = fIn.files[0]; if (!f) return;
+      bName.textContent = 'Đang tải ảnh lên...';
+      const dataUrl = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(f); });
+      const resp = await fetch('/api/upload-bg', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name: f.name, data: dataUrl }) });
+      const out = await resp.json();
+      if (out.file){ st.bgFile = out.file; st.bgName = f.name; bName.textContent = 'Đang dùng: ' + f.name + ' (nền ảnh thay cảnh code)'; bBtn.textContent = 'Đổi ảnh nền'; }
+      else { bName.textContent = 'Tải ảnh lỗi: ' + (out.error || 'không rõ'); }
+    });
+    bRow.appendChild(fIn); bRow.appendChild(bBtn); bRow.appendChild(bName);
+    if (st.bgFile){
+      const clr = document.createElement('button'); clr.className = 'mini'; clr.textContent = 'Bỏ ảnh nền';
+      clr.addEventListener('click', () => { st.bgFile = null; st.bgName = ''; renderCards(null); });
+      bRow.appendChild(clr);
+    }
+    card.appendChild(bRow);
     box.appendChild(card);
   });
+  document.getElementById('chipCount').textContent = sentences.length + ' câu thoại';
+  const ca = document.getElementById('chipAuto');
+  ca.textContent = autoOn() ? (autoCount + ' / ' + sentences.length + ' đã TỰ GÁN') : 'Tự gán: TẮT';
+  ca.className = 'chip' + (autoOn() && autoCount < sentences.length ? ' warn' : '');
+  const tot = sentences.reduce((a,s)=>a+estDur(s),0);
+  document.getElementById('chipDur').textContent = '~' + Math.round(tot) + ' giây';
 }
-document.getElementById('script').addEventListener('input', rebuild);
+
+async function rebuild(){
+  const ta = document.getElementById('script');
+  sentences = splitScript(ta.value);
+  const seq = ++analyzeSeq;
+  let results = null;
+  if (autoOn() && sentences.length){
+    try {
+      const r = await fetch('/api/analyze', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ sentences: sentences }) });
+      const out = await r.json();
+      if (seq !== analyzeSeq) return;
+      results = out.results;
+    } catch(e) { /* loi mang cuc bo: giu the khong tu gan */ }
+  }
+  if (seq !== analyzeSeq) return;
+  renderHlPreview(results);
+  renderCards(results);
+}
+
+let deb = null;
+document.getElementById('script').addEventListener('input', () => {
+  clearTimeout(deb); deb = setTimeout(rebuild, 350);
+});
+document.getElementById('autoToggle').addEventListener('change', () => {
+  document.getElementById('toggleState').textContent = autoOn() ? 'BẬT' : 'TẮT';
+  cardsState = [];
+  rebuild();
+});
 fetch('/api/music').then(r=>r.json()).then(list=>{
   const sel = document.getElementById('music');
   list.forEach(f=>{ const o=document.createElement('option'); o.value=f; o.textContent=f; sel.appendChild(o); });
 });
 let poll = null;
 document.getElementById('renderBtn').addEventListener('click', async () => {
-  const cards = document.querySelectorAll('#cards select');
-  const job = sentences.map((s,i)=>({text:s, scene:parseInt(cards[i].value)}));
-  if (!job.length){ alert('Chưa có câu thoại nào.'); return; }
+  const missing = cardsState.findIndex(st => !st.scene);
+  if (!cardsState.length){ alert('Chưa có câu thoại nào.'); return; }
+  if (missing >= 0){
+    alert('Câu ' + (missing+1) + ' chưa có cảnh. Hãy chọn mẫu cảnh cho câu đó ở cột 2 trước khi Render.');
+    return;
+  }
+  const job = cardsState.map(st => {
+    const item = { text: st.text, scene: st.scene };
+    if (st.source === 'auto' && st.auto && st.auto.params && Object.keys(st.auto.params).length)
+      item.params = st.auto.params;
+    const lbl = (st.label || '').trim();
+    if (lbl) item.annotation = { label: lbl, target: st.target != null ? st.target : 4 };
+    if (st.bgFile) item.bg = st.bgFile;
+    return item;
+  });
   const music = document.getElementById('music').value;
   const btn = document.getElementById('renderBtn');
   btn.disabled = true; btn.textContent = 'ĐANG RENDER...';
   document.getElementById('barWrap').style.display='block';
   document.getElementById('doneBox').style.display='none';
-  await fetch('/api/render', {method:'POST', headers:{'Content-Type':'application/json'},
+  const resp = await fetch('/api/render', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({sentences: job, music: music})});
+  if (!resp.ok){
+    const e = await resp.json().catch(()=>({}));
+    btn.disabled=false; btn.textContent='▶ RENDER VIDEO';
+    alert('Không render được: ' + (e.error || resp.status));
+    return;
+  }
   poll = setInterval(async () => {
     const st = await (await fetch('/api/status')).json();
     document.getElementById('bar').style.width = st.progress + '%';
@@ -271,6 +512,10 @@ class Handler(BaseHTTPRequestHandler):
         elif path.startswith("/previews/"):
             self._send_file(os.path.join(TOOL_DIR, path.lstrip("/")),
                             "image/gif")
+        elif path.startswith("/uploads/"):
+            name = os.path.basename(path)
+            ctype = mimetypes.guess_type(name)[0] or "application/octet-stream"
+            self._send_file(os.path.join(UPLOADS_DIR, name), ctype)
         elif path.startswith("/fonts/"):
             self._send_file(os.path.join(FONTS_DIR, os.path.basename(path)),
                             "font/ttf")
@@ -280,15 +525,72 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self._send(404, "Not found", "text/plain")
 
-    def do_POST(self):
-        u = urllib.parse.urlparse(self.path)
+    def _read_json(self):
         length = int(self.headers.get("Content-Length", 0))
         raw = self.rfile.read(length) if length else b"{}"
-        if u.path == "/api/render":
+        return json.loads(raw.decode("utf-8"))
+
+    def do_POST(self):
+        u = urllib.parse.urlparse(self.path)
+        if u.path == "/api/analyze":
             try:
-                data = json.loads(raw.decode("utf-8"))
-                sentences = [{"text": s["text"], "scene": int(s["scene"])}
-                             for s in data["sentences"] if s["text"].strip()]
+                data = self._read_json()
+                texts = [str(x) for x in data.get("sentences", [])]
+                results = [auto_mod.analyze(t) for t in texts]
+                self._send(200, json.dumps({"results": results}),
+                           "application/json")
+            except Exception as e:
+                self._send(400, json.dumps({"error": str(e)}),
+                           "application/json")
+        elif u.path == "/api/upload-bg":
+            try:
+                data = self._read_json()
+                name = os.path.basename(str(data.get("name", "bg.png")))
+                name = re.sub(r"[^A-Za-z0-9._-]", "_", name) or "bg.png"
+                if not name.lower().endswith(IMG_EXTS):
+                    raise ValueError("Chi nhan anh .png/.jpg/.webp")
+                b64 = str(data.get("data", ""))
+                if "," in b64[:64]:
+                    b64 = b64.split(",", 1)[1]
+                raw = base64.b64decode(b64)
+                if len(raw) > 25 * 1024 * 1024:
+                    raise ValueError("Anh qua lon (>25MB)")
+                os.makedirs(UPLOADS_DIR, exist_ok=True)
+                fname = "%d-%s" % (int(time.time()), name)
+                with open(os.path.join(UPLOADS_DIR, fname), "wb") as f:
+                    f.write(raw)
+                self._send(200, json.dumps({"file": fname}),
+                           "application/json")
+            except Exception as e:
+                self._send(400, json.dumps({"error": str(e)}),
+                           "application/json")
+        elif u.path == "/api/render":
+            try:
+                data = self._read_json()
+                sentences = []
+                for s in data["sentences"]:
+                    if not str(s.get("text", "")).strip():
+                        continue
+                    if s.get("scene") in (None, ""):
+                        raise ValueError(
+                            "Co cau chua chon canh — hay chon tay truoc "
+                            "khi Render")
+                    item = {"text": str(s["text"]),
+                            "scene": int(s["scene"])}
+                    if isinstance(s.get("params"), dict) and s["params"]:
+                        item["params"] = s["params"]
+                    ann = s.get("annotation")
+                    if isinstance(ann, dict) and str(
+                            ann.get("label", "")).strip():
+                        item["annotation"] = {
+                            "label": str(ann["label"]).strip(),
+                            "target": int(ann.get("target", 4))}
+                    if s.get("bg"):
+                        p = os.path.join(
+                            UPLOADS_DIR, os.path.basename(str(s["bg"])))
+                        if os.path.isfile(p):
+                            item["bg"] = p
+                    sentences.append(item)
                 if not sentences:
                     raise ValueError("Kich ban rong")
                 music = data.get("music") or ""
@@ -309,6 +611,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(400, json.dumps({"error": str(e)}),
                            "application/json")
         elif u.path == "/api/open-videos":
+            self._read_json()
             os.makedirs(VIDEOS_DIR, exist_ok=True)
             try:
                 if sys.platform.startswith("win"):
@@ -327,10 +630,11 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     os.makedirs(VIDEOS_DIR, exist_ok=True)
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
     previews_mod.ensure_previews(log=lambda m: print(m, flush=True))
     srv = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
     url = "http://localhost:%d" % PORT
-    print("PIXEL STUDIO dang chay o %s (Ctrl+C de tat)" % url, flush=True)
+    print("PIXEL STUDIO V2 dang chay o %s (Ctrl+C de tat)" % url, flush=True)
     if not os.environ.get("PIXEL_NO_OPEN"):
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     try:
