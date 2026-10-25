@@ -1,4 +1,4 @@
-# PIXEL STUDIO V2 — Hướng dẫn dùng (cho người mới, không cần biết code)
+# PIXEL STUDIO V2.2 — Hướng dẫn dùng (cho người mới, không cần biết code)
 
 Tool làm video giải thích **vẽ hoàn toàn bằng code**, phong cách **PIXEL 16-BIT**
 đã khóa cứng: bạn dán kịch bản → tool tự gán cảnh theo nội dung → bấm Render →
@@ -7,6 +7,15 @@ không gửi đi đâu, không tốn phí).
 
 Đây là **dự án riêng cho kênh mới**, tách biệt hẳn tool videos hiện tại —
 hai tool không dùng chung gì cả, cứ yên tâm dùng song song.
+
+## MỚI Ở V2.2 (25/10/2026)
+
+1. **Thư viện style2 từ video Nokia** — 30 ảnh nền + 8 template + nhạc
+   dark-empire-loop; xem trong mục **Thư viện Style2** ở cột 3 (bấm vào
+   từng mục để xem lớn ở hộp xem trước).
+2. **Chuẩn mix kênh:** nhạc 0.34, loudnorm -15 LUFS.
+3. **End card mặc định đúng tên kênh 16BIT_EXE.**
+4. **Bản repo GitHub đã đồng bộ khớp bản chính.**
 
 ---
 
@@ -166,3 +175,22 @@ Quay lại cửa sổ đen → nhấn `Ctrl + C`, hoặc đóng luôn cửa sổ
 - `uploads/` — ảnh nền lai bạn tải lên từ giao diện.
 - `Videos/` — video render xong nằm ở đây.
 - `work/` — thư mục tạm khi render (tự dọn cũng được).
+
+---
+
+## MỚI Ở BẢN 2.1 (đợt vá 22/10/2026)
+
+### 1. Bộ chọn mẫu cảnh mới (nút "Đổi cảnh" trên mỗi thẻ câu)
+Bấm **Đổi cảnh** ở thẻ câu → mở bảng chọn cảnh có:
+- **Gợi ý cho câu này:** tối đa 3 cảnh hợp nhất theo nội dung câu, kèm thanh độ khớp — bấm 1 cái là gán xong.
+- **Ô tìm kiếm:** gõ tên cảnh hoặc từ khóa (vd: `sụp đổ`, `tiền`, `vs`, `mạng lưới`) là lọc ngay, khỏi cuộn tìm.
+- **Chip nhóm:** Tất cả · Tăng trưởng · So sánh · Công nghệ · Thời gian · Con người — bấm nhóm để thu hẹp.
+- **Lưới ảnh động:** nhìn hình chọn cảnh, nhanh hơn đọc tên. Cảnh nào bạn chọn tay nhiều lần sẽ tự nổi lên đầu lưới.
+
+### 2. Ô xem trước tự bám theo thẻ câu
+Bấm vào bất kỳ thẻ câu nào ở cột 2 → ô **XEM TRƯỚC** ở cột 3 tự đổi sang đúng cảnh của câu đó (không cần bấm ảnh nhỏ nữa).
+
+### 3. Nối video (ở cột 3, dưới nút Render)
+Quy trình làm video dài: **render từng khúc khoảng 30 giây** (mỗi khúc 4–5 câu) → các khúc hiện trong danh sách **NỐI VIDEO** → **tick chọn các khúc theo đúng thứ tự** (danh sách xếp theo tên file) → bấm **NỐI CÁC VIDEO ĐÃ CHỌN** → tool tạo 1 file `ghep-<ngày-giờ>.mp4` trong thư mục Videos.
+Lưu ý: chỉ nối được các video do chính tool này xuất ra (cùng định dạng). Đặt tên khúc có số thứ tự (01, 02, 03...) thì thứ tự nối luôn đúng.
+

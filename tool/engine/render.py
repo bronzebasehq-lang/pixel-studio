@@ -3,7 +3,7 @@
 PIXEL STUDIO - pipeline render video:
   kich ban -> cat cau -> giong am_adam tung cau -> ve frame pixel theo
   thoi luong giong that -> ffmpeg tung doan -> ghep (hard cut) ->
-  tron nhac nen (neu co) -> loudnorm -16 LUFS -> Videos/video-<ngay-gio>.mp4
+  tron nhac nen (neu co) -> loudnorm -15 LUFS -> Videos/video-<ngay-gio>.mp4
 
 Chay doc lap:
   python3 render.py --script "Cau mot. Cau hai." --scenes 1,8
@@ -109,11 +109,9 @@ def _render_segment(seg_idx, text, scene_id, wav_path, seg_dur, work_dir,
                 base.alpha_composite(hi_layer)
                 frame = base.convert("RGB")
             frame = sub_mod.draw_subtitle(frame, text)
-            # fade-in 0.35s dau + fade-out 0.25s cuoi (hieu ung dung chung)
-            fade = min(tm / 0.35 if tm < 0.35 else 1.0,
-                       (seg_dur - tm) / 0.25 if seg_dur - tm < 0.25 else 1.0)
-            if fade < 1.0:
-                frame = Image.blend(black, frame, max(0.0, fade))
+            # HARD CUT 100% giua cac canh (chuan khoa cua kenh) - KHONG fade.
+            # Ban cu co fade-in 0.35s + fade-out 0.25s moi doan -> video dai
+            # nhap nhay lien tuc; Minh phat hien 22/10, da go bo.
             proc.stdin.write(frame.tobytes())
             if progress and (i % 15 == 0):
                 progress((frames_done + i) / float(total_frames))
@@ -173,22 +171,22 @@ def render_job(sentences, music_path=None, out_path=None, progress=None,
     _run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_file,
           "-c", "copy", merged])
 
-    # 4) nhac nen (neu co) + loudnorm ve -16 LUFS
+    # 4) nhac nen (neu co) + loudnorm ve -15 LUFS
     if not out_path:
         stamp = datetime.datetime.now().strftime("%Y-%m-%d-%H%M")
         out_path = os.path.join(TOOL_DIR, "Videos", "video-%s.mp4" % stamp)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     if music_path:
-        af = ("[1:a]aloop=loop=-1:size=2147483647,volume=0.22[m];"
+        af = ("[1:a]aloop=loop=-1:size=2147483647,volume=0.34[m];"
               "[0:a][m]amix=inputs=2:duration=first:dropout_transition=0,"
-              "loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000[a]")
+              "loudnorm=I=-15:TP=-1.5:LRA=11,aresample=48000[a]")
         _run(["ffmpeg", "-y", "-i", merged, "-i", music_path,
               "-filter_complex", af, "-map", "0:v", "-map", "[a]",
               "-c:v", "copy", "-c:a", "aac", "-b:a", "160k",
               "-ar", "48000", out_path])
     else:
         _run(["ffmpeg", "-y", "-i", merged,
-              "-af", "loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000",
+              "-af", "loudnorm=I=-15:TP=-1.5:LRA=11,aresample=48000",
               "-c:v", "copy", "-c:a", "aac", "-b:a", "160k",
               "-ar", "48000", out_path])
     if progress:

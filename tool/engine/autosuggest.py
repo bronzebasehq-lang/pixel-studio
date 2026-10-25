@@ -205,6 +205,45 @@ def _score_text(text):
 
 
 # =====================================================================
+# METADATA CHO BO CHON CANH (nhom + tu khoa tim kiem) — doi va 22/10
+# =====================================================================
+SCENE_META = {
+    1: {"group": "Tăng trưởng",
+        "tags": "phinh to tang truong growth bong ball nuot lon len"},
+    2: {"group": "So sánh",
+        "tags": "can so sanh vs doi dau thang thua wins compare canh tranh"},
+    3: {"group": "Công nghệ",
+        "tags": "mang luoi node ket noi he thong network connect lien ket"},
+    4: {"group": "Thời gian",
+        "tags": "dong thoi gian nam moc lich su timeline year history ngay thang"},
+    5: {"group": "Tăng trưởng",
+        "tags": "roi xep chong tich luy so luong users million stack khoi"},
+    6: {"group": "Thời gian",
+        "tags": "ban do hanh trinh buoc di duong journey steps first then lo trinh"},
+    7: {"group": "Công nghệ",
+        "tags": "co may van hanh banh rang tu dong machine works engine he thong chay"},
+    8: {"group": "Con người",
+        "tags": "nguoi nhan vat cong ty founder person imagine you chu doanh nghiep"},
+}
+
+
+def scene_catalog():
+    """Danh muc canh cho UI chon canh: id, ten, nhom, chuoi tu khoa tim kiem."""
+    kw_by_scene = {}
+    for rule in RULES:
+        kw = rule.get("keywords_en", []) + rule.get("keywords_vi", [])
+        kw_by_scene.setdefault(rule["scene"], []).extend(kw)
+    out = []
+    for scene in sorted(_NAME_BY_SCENE):
+        meta = SCENE_META.get(scene, {"group": "Khác", "tags": ""})
+        tags = " ".join([meta["tags"], _NAME_BY_SCENE[scene]] +
+                        kw_by_scene.get(scene, []))
+        out.append({"id": scene, "name": _NAME_BY_SCENE[scene],
+                    "group": meta["group"], "tags": tags.lower()})
+    return out
+
+
+# =====================================================================
 # TRICH DU KIEN (SPEC-V2 muc 3)
 # =====================================================================
 def _to_number(num_text):
@@ -526,6 +565,7 @@ def analyze(text):
             "match": 0,
             "low_match": False,
             "highlights": [],
+            "top3": [],
         }
     text = str(text)
     scores, matched = _score_text(text)
@@ -548,6 +588,7 @@ def analyze(text):
             "match": 0,
             "low_match": False,
             "highlights": highlights,
+            "top3": [],
         }
 
     scene = ranked[0]
@@ -564,6 +605,9 @@ def analyze(text):
     if scene == 2 and "winner" in facts and "winner" not in params:
         params["winner"] = facts["winner"]
 
+    top3 = [{"scene": sc, "name": _NAME_BY_SCENE[sc],
+             "match": min(5, max(1, scores[sc]))} for sc in ranked[:3]]
+
     match = min(5, top_score + (1 if params else 0))
     match = max(1, match)
 
@@ -577,6 +621,7 @@ def analyze(text):
         "match": match,
         "low_match": low_match,
         "highlights": highlights,
+        "top3": top3,
     }
 
 

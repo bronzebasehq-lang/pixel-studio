@@ -1,0 +1,386 @@
+[
+  {
+    "name": "jobs-portrait",
+    "kind": "image",
+    "group": "nguoi",
+    "tags": "chan dung nguoi noi tieng steve jobs portrait keynote",
+    "file": "uploads/jobs-portrait.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "ollila-portrait",
+    "kind": "image",
+    "group": "nguoi",
+    "tags": "chan dung ceo jorma ollila portrait",
+    "file": "uploads/ollila-portrait.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "elop-portrait",
+    "kind": "image",
+    "group": "nguoi",
+    "tags": "chan dung ceo stephen elop portrait",
+    "file": "uploads/elop-portrait.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "jobs-ref",
+    "kind": "image",
+    "group": "nguoi",
+    "tags": "anh that tham chieu chan dung reference photo",
+    "file": "uploads/jobs-ref.jpg",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "ollila-ref",
+    "kind": "image",
+    "group": "nguoi",
+    "tags": "anh that tham chieu chan dung reference photo",
+    "file": "uploads/ollila-ref.jpg",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "elop-ref",
+    "kind": "image",
+    "group": "nguoi",
+    "tags": "anh that tham chieu chan dung reference photo",
+    "file": "uploads/elop-ref.jpg",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "3310-monument",
+    "kind": "image",
+    "group": "dien-thoai",
+    "tags": "dien thoai nokia 3310 tuong dai monument phone",
+    "file": "uploads/3310-monument.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "3310-solo",
+    "kind": "image",
+    "group": "dien-thoai",
+    "tags": "dien thoai nokia 3310 mot minh solo phone",
+    "file": "uploads/3310-solo.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "iphone-solo",
+    "kind": "image",
+    "group": "dien-thoai",
+    "tags": "dien thoai iphone mot minh solo phone",
+    "file": "uploads/iphone-solo.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "keynote-phone",
+    "kind": "image",
+    "group": "dien-thoai",
+    "tags": "dien thoai tren san khau keynote phone stage",
+    "file": "uploads/keynote-phone.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "symbian-phone",
+    "kind": "image",
+    "group": "dien-thoai",
+    "tags": "dien thoai symbian phone keypad",
+    "file": "uploads/symbian-phone.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "lumia",
+    "kind": "image",
+    "group": "dien-thoai",
+    "tags": "dien thoai lumia windows phone",
+    "file": "uploads/lumia.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "meego-phone",
+    "kind": "image",
+    "group": "dien-thoai",
+    "tags": "dien thoai meego n9 phone",
+    "file": "uploads/meego-phone.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "phone-table",
+    "kind": "image",
+    "group": "dien-thoai",
+    "tags": "dien thoai tren ban phone table prototype",
+    "file": "uploads/phone-table.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "1011-pedestal",
+    "kind": "image",
+    "group": "dien-thoai",
+    "tags": "dien thoai nokia 1011 be bao tang pedestal museum",
+    "file": "uploads/1011-pedestal.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "factory",
+    "kind": "image",
+    "group": "canh",
+    "tags": "nha may cong nghiep factory industry",
+    "file": "uploads/factory.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "warehouse",
+    "kind": "image",
+    "group": "canh",
+    "tags": "kho hang warehouse storage",
+    "file": "uploads/warehouse.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "mill-dusk",
+    "kind": "image",
+    "group": "canh",
+    "tags": "xuong giay hoang hon mill dusk river",
+    "file": "uploads/mill-dusk.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "paper-machine",
+    "kind": "image",
+    "group": "canh",
+    "tags": "may lam giay paper machine factory",
+    "file": "uploads/paper-machine.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "boardroom-night",
+    "kind": "image",
+    "group": "canh",
+    "tags": "phong hop ban dem boardroom night",
+    "file": "uploads/boardroom-night.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "store-shuttered",
+    "kind": "image",
+    "group": "canh",
+    "tags": "cua hang dong cua sap tiem store shuttered closed",
+    "file": "uploads/store-shuttered.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "blueprint-lab",
+    "kind": "image",
+    "group": "canh",
+    "tags": "phong lab ban ve blueprint lab prototype",
+    "file": "uploads/blueprint-lab.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "5g-tower",
+    "kind": "image",
+    "group": "canh",
+    "tags": "thap song 5g tower antenna network",
+    "file": "uploads/5g-tower.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "ecosystem",
+    "kind": "image",
+    "group": "canh",
+    "tags": "he sinh thai ecosystem apps",
+    "file": "uploads/ecosystem.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "camera-measure",
+    "kind": "image",
+    "group": "canh",
+    "tags": "camera do toc do camera measure studio",
+    "file": "uploads/camera-measure.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "thumb-bg",
+    "kind": "image",
+    "group": "canh",
+    "tags": "nen thumbnail thumb background",
+    "file": "uploads/thumb-bg.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "skyline-dusk",
+    "kind": "image",
+    "group": "canh",
+    "tags": "thanh pho hoang hon skyline dusk city",
+    "file": "uploads/skyline-dusk.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "skyline-night",
+    "kind": "image",
+    "group": "canh",
+    "tags": "thanh pho ban dem skyline night city",
+    "file": "uploads/skyline-night.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "burning-platform",
+    "kind": "image",
+    "group": "an-du",
+    "tags": "gian khoan chay an du burning platform metaphor fire ocean",
+    "file": "uploads/burning-platform.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "train-wings",
+    "kind": "image",
+    "group": "an-du",
+    "tags": "tau gan canh an du train wings metaphor smoke",
+    "file": "uploads/train-wings.webp",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "counter",
+    "kind": "template",
+    "group": "so-lieu",
+    "tags": "bo dem so chay dem tien so luong counter count-up number",
+    "file": "engine/style2_templates.py",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)",
+    "preview": "previews/style2-counter.gif"
+  },
+  {
+    "name": "chart",
+    "kind": "template",
+    "group": "so-lieu",
+    "tags": "bieu do duong tang truong lao doc sup do line chart growth collapse",
+    "file": "engine/style2_templates.py",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)",
+    "preview": "previews/style2-chart.gif"
+  },
+  {
+    "name": "price_bars",
+    "kind": "template",
+    "group": "so-lieu",
+    "tags": "thanh gia so sanh gia ban doanh thu comparison price bars",
+    "file": "engine/style2_templates.py",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)",
+    "preview": "previews/style2-price_bars.gif"
+  },
+  {
+    "name": "death_spiral",
+    "kind": "template",
+    "group": "so-lieu",
+    "tags": "vong xoay tu than khong app khong nguoi dung death spiral loop",
+    "file": "engine/style2_templates.py",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)",
+    "preview": "previews/style2-death_spiral.gif"
+  },
+  {
+    "name": "quote_card",
+    "kind": "template",
+    "group": "text",
+    "tags": "the trich dan cau noi memo quote card",
+    "file": "engine/style2_templates.py",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)",
+    "preview": "previews/style2-quote_card.gif"
+  },
+  {
+    "name": "definition_card",
+    "kind": "template",
+    "group": "text",
+    "tags": "the dinh nghia giai thich thuat ngu osborne definition card explainer",
+    "file": "engine/style2_templates.py",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)",
+    "preview": "previews/style2-definition_card.gif"
+  },
+  {
+    "name": "game_over",
+    "kind": "template",
+    "group": "end-card",
+    "tags": "man game over ket thuc thua game over screen",
+    "file": "engine/style2_templates.py",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)",
+    "preview": "previews/style2-game_over.gif"
+  },
+  {
+    "name": "end_card",
+    "kind": "template",
+    "group": "end-card",
+    "tags": "the ket thuc kenh logo cuoi video end card outro",
+    "file": "engine/style2_templates.py",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)",
+    "preview": "previews/style2-end_card.gif"
+  },
+  {
+    "name": "typed_ps + draw_typed + typed_caption",
+    "kind": "template",
+    "group": "text",
+    "tags": "go chu tung ky tu caption lon typewriter typed text",
+    "file": "engine/style2_templates.py",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "chip",
+    "kind": "template",
+    "group": "hieu-ung",
+    "tags": "nhan dan the nho pop label chip tag",
+    "file": "engine/style2_templates.py",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "stamp",
+    "kind": "template",
+    "group": "hieu-ung",
+    "tags": "con dau do dong dau stamp rejected killed",
+    "file": "engine/style2_templates.py",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "dust / smoke / screen_glow / flicker_glow / glitch",
+    "kind": "template",
+    "group": "hieu-ung",
+    "tags": "hat bui khoi phat sang nhay lua nhieu song dust smoke glow flicker glitch",
+    "file": "engine/style2_templates.py",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "grid_bg / _panel",
+    "kind": "template",
+    "group": "hieu-ung",
+    "tags": "nen luoi toa do panel chan dung grid background portrait panel",
+    "file": "engine/style2_templates.py",
+    "source": "video-01-nokia (Long #1 kenh 16bit_exe, style2)"
+  },
+  {
+    "name": "dark-empire-loop",
+    "kind": "audio",
+    "group": "nhac-nen",
+    "tags": "nhac nen tram hung de che dark empire loop background music",
+    "file": "music/11-dark-empire-loop.mp3",
+    "source": "video-01-nokia (~/workspace/16bit-exe-music-dark)"
+  },
+  {
+    "name": "voice-am-adam",
+    "kind": "config",
+    "group": "cau-hinh",
+    "tags": "giong doc am_adam sid 5 speed 1.0 kokoro voice config",
+    "file": "engine/voice.py",
+    "source": "chuan kenh 16bit_exe (SID_AM_ADAM=5, SPEED=1.0)"
+  },
+  {
+    "name": "music-mix-0.34",
+    "kind": "config",
+    "group": "cau-hinh",
+    "tags": "tron nhac nen volume 0.34 music mix config",
+    "file": "engine/render.py",
+    "source": "chuan mix kenh 16bit_exe da duyet (volume=0.34)"
+  },
+  {
+    "name": "loudnorm-i-15",
+    "kind": "config",
+    "group": "cau-hinh",
+    "tags": "chuan am luong loudnorm I=-15 TP=-1.5 LRA=11 loudness config",
+    "file": "engine/render.py",
+    "source": "chuan mix kenh 16bit_exe da duyet (loudnorm I=-15:TP=-1.5:LRA=11)"
+  }
+]
