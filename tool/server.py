@@ -258,7 +258,7 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
     <div class="row"><select id="fmt" disabled><option>Ngang 16:9 (1920×1080)</option></select></div>
     <label class="lbl">Nhạc nền (thư viện retro có sẵn):</label>
     <div class="row"><select id="music"><option value="">Không nhạc</option></select></div>
-    <p class="note">11 bài nhạc chiptune 8/16-bit đã tích hợp sẵn trong tool — chọn 1 bài, nhạc tự lặp liền mạch hết video và nằm nhỏ dưới giọng đọc. Muốn thêm bài riêng: chép file .mp3 vào thư mục <b>music</b> của tool rồi tải lại trang.</p>
+    <p class="note">12 bài nhạc chiptune 8/16-bit đã tích hợp sẵn trong tool — chọn 1 bài, nhạc tự lặp liền mạch hết video và nằm nhỏ dưới giọng đọc. Muốn thêm bài riêng: chép file .mp3 vào thư mục <b>music</b> của tool rồi tải lại trang.</p>
     <button id="renderBtn">▶ RENDER VIDEO</button>
     <div id="barWrap"><div id="bar"></div></div>
     <div id="status"></div>
@@ -895,7 +895,7 @@ def main():
     previews_mod.ensure_previews(log=lambda m: print(m, flush=True))
     srv = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
     url = "http://localhost:%d" % PORT
-    print("PIXEL STUDIO V2 dang chay o %s (Ctrl+C de tat)" % url, flush=True)
+    print("PIXEL STUDIO V2.2 dang chay o %s (Ctrl+C de tat)" % url, flush=True)
     if not os.environ.get("PIXEL_NO_OPEN"):
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     try:
