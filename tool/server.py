@@ -32,6 +32,7 @@ import autosuggest as auto_mod  # noqa: E402
 import previews as previews_mod  # noqa: E402
 import render as render_mod  # noqa: E402
 import scenes as scenes_mod  # noqa: E402
+import style2_scenes as s2s_mod  # noqa: E402
 
 PORT = 8766
 VIDEOS_DIR = os.path.join(TOOL_DIR, "Videos")
@@ -52,7 +53,7 @@ def _job_log(msg):
     print(msg, flush=True)
 
 
-def _run_job(sentences, music_path):
+def _run_job(sentences, music_path, fmt="16:9"):
     with _job_lock:
         _job.update(state="running", progress=0.0, video=None, error=None,
                     log=[])
@@ -61,7 +62,7 @@ def _run_job(sentences, music_path):
             with _job_lock:
                 _job["progress"] = round(k * 100, 1)
         out = render_mod.render_job(sentences, music_path=music_path,
-                                    progress=prog, log=_job_log)
+                                    progress=prog, log=_job_log, fmt=fmt)
         with _job_lock:
             _job.update(state="done", progress=100.0,
                         video=os.path.basename(out))
@@ -92,10 +93,36 @@ def _library_items():
     for it in items:
         if not isinstance(it, dict):
             continue
-        out.append({"name": it.get("name", ""), "kind": it.get("kind", ""),
-                    "group": it.get("group", ""), "tags": it.get("tags", ""),
+        name = it.get("name", "")
+        kind = it.get("kind", "")
+        group = it.get("group", "")
+        # V2.3: anh xa NHOM HIEN THI trong code (catalog giu nguyen):
+        #   dien-thoai -> dienthoai | canh -> canhnen | an-du -> andu
+        #   nguoi: *-portrait -> chandung (chan dung pixel),
+        #          *-ref.jpg  -> thamchieu (anh that tham chieu ve)
+        #   template co GIF xem truoc -> template; template ho tro noi bo
+        #   (khong preview) -> hidden=True, an khoi luoi (code van dung).
+        dgroup = None
+        hidden = False
+        if kind == "template":
+            if it.get("preview"):
+                dgroup = "template"
+            else:
+                hidden = True
+        elif kind == "image":
+            if group == "nguoi":
+                dgroup = "thamchieu" if name.endswith("-ref") else "chandung"
+            elif group == "dien-thoai":
+                dgroup = "dienthoai"
+            elif group == "canh":
+                dgroup = "canhnen"
+            elif group == "an-du":
+                dgroup = "andu"
+        out.append({"name": name, "kind": kind,
+                    "group": group, "tags": it.get("tags", ""),
                     "file": it.get("file", ""),
-                    "preview": it.get("preview", "")})
+                    "preview": it.get("preview", ""),
+                    "dgroup": dgroup, "hidden": hidden})
     return out
 
 
@@ -103,7 +130,7 @@ PAGE = r"""<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<title>PIXEL STUDIO V2.2 — Tự gán cảnh + mũi tên chú thích + nhạc retro</title>
+<title>PIXEL STUDIO V2.3 — Tự gán cảnh + template Style2 có form + dọc 9:16</title>
 <style>
 @font-face { font-family:'VT323'; src:url('/fonts/VT323.ttf'); }
 @font-face { font-family:'PS2P'; src:url('/fonts/PressStart2P.ttf'); }
@@ -200,11 +227,24 @@ label.lbl { font-family:'VT323'; font-size:20px; color:#40c8dc; display:block; m
 #previewCap { background:#04040a; color:#ffd84f; text-align:center; padding:7px 6px; font-size:14px; }
 #libBox { margin-top:16px; border:2px solid #3a3570; padding:10px 12px; }
 #libBox h3 { font-family:'VT323'; font-size:21px; color:#40c8dc; margin:0 0 6px; font-weight:normal; }
-#libGrid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
+#libSearch { width:100%; background:#100e28; color:#fff; border:1px solid #a8a8c8; padding:8px; font-size:14px; box-sizing:border-box; margin-bottom:2px; }
+.libgrid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:4px; }
+.libgh { font-family:'VT323'; font-size:19px; color:#ffd84f; margin:10px 0 5px; }
 .libcell { border:2px solid #584ca8; background:#000; cursor:pointer; }
 .libcell:hover { border-color:#ffd84f; }
 .libcell img { width:100%; display:block; image-rendering:pixelated; aspect-ratio:16/9; object-fit:cover; }
-.libcap { font-family:'VT323'; font-size:15px; color:#eeeeF8; text-align:center; padding:3px 2px 5px; }
+.libcap { font-family:'VT323'; font-size:15px; color:#eeeeF8; text-align:center; padding:3px 2px 1px; }
+.libtags { font-size:11px; color:#a8a8c8; text-align:center; padding:0 3px 5px; line-height:1.35; }
+button.libbg { display:block; width:100%; background:#221f42; border:none; border-top:2px solid #584ca8; color:#40c8dc; padding:5px 2px; cursor:pointer; font-family:'VT323'; font-size:16px; }
+button.libbg:hover { color:#ffd84f; }
+#libRefs { margin-top:10px; border:2px solid #6b4a2a; padding:8px 10px; }
+#libRefs summary { font-family:'VT323'; font-size:18px; color:#ff9d5c; cursor:pointer; }
+#libRefs .libgrid { margin-top:8px; }
+.tplBox { border:2px dashed #40c8dc; background:#1a1838; padding:8px 10px; margin-top:10px; }
+.tplRow { display:flex; gap:8px; align-items:center; margin:5px 0; }
+.tplRow .tplLbl { flex:0 0 38%; font-size:13px; color:#a8a8c8; line-height:1.3; }
+.tplRow input[type=text], .tplRow input[type=number] { flex:1; min-width:0; background:#100e28; color:#fff; border:1px solid #a8a8c8; padding:6px; font-size:14px; }
+.tplRow input[type=checkbox] { width:18px; height:18px; flex:none; margin:0; }
 button#renderBtn { width:100%; background:#46c878; border:none; padding:16px; font-family:'PS2P'; font-size:15px; cursor:pointer; margin-top:14px; }
 button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
 #barWrap { height:16px; border:2px solid #584ca8; margin-top:12px; display:none; }
@@ -217,10 +257,10 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
 </head>
 <body>
 <header>
-  <h1>PIXEL STUDIO <span class="tag">— V2.2 · tool video vẽ bằng code</span></h1>
+  <h1>PIXEL STUDIO <span class="tag">— V2.3 · tool video vẽ bằng code</span></h1>
   <p class="sub">Dán kịch bản → tool TỰ GÁN cảnh theo nội dung từng câu → chỉnh tay nếu muốn → Render. Không cần biết code.</p>
   <div class="lock"><b>PHONG CÁCH ĐÃ KHÓA: PIXEL 16-BIT</b> — lưới 320×180, phóng NEAREST, đổ bóng 2–3 tông + dithering.<br>
-  <span class="c3">MỚI Ở V2.2: THƯ VIỆN STYLE2 TỪ VIDEO NOKIA (30 ẢNH + 8 TEMPLATE CÓ GIF XEM TRƯỚC) · CHUẨN MIX KÊNH 16BIT_EXE.</span><br>
+  <span class="c3">MỚI Ở V2.3: THƯ VIỆN CHIA NHÓM + Ô TÌM KIẾM + NÚT ĐẶT LÀM NỀN · 8 TEMPLATE STYLE2 THÀNH MẪU CẢNH CÓ FORM SỬA SỐ LIỆU + CHỮ CHẠY + CAPTION POP-UP · THÊM ĐỊNH DẠNG DỌC 9:16 CHO SHORTS.</span><br>
   <span class="c2">DỰ ÁN RIÊNG CHO KÊNH MỚI — tách biệt hẳn tool videos hiện tại.</span></div>
 </header>
 <main>
@@ -236,7 +276,7 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
     <div id="hlPreview"></div>
     <p class="note" style="margin-top:8px">Manh mối gán cảnh: <span class="hl-pct">■ số %/tăng</span> · <span class="hl-vs">■ so sánh</span> · <span class="hl-step">■ thứ tự bước</span> · <span class="hl-year">■ mốc năm</span></p>
     <div class="chips"><span class="chip" id="chipCount">0 câu thoại</span><span class="chip" id="chipAuto">0 / 0 đã TỰ GÁN</span><span class="chip" id="chipDur">~0 giây</span></div>
-    <p class="note">Thư viện mẫu cảnh hiện có: <b>8 mẫu</b> — Quả cầu nuốt cảnh · Cân so sánh · Mạng lưới node · Dòng thời gian · Rơi &amp; xếp chồng · Bản đồ hành trình · Cỗ máy vận hành · Người trong cảnh.<br><br>
+    <p class="note">Thư viện mẫu cảnh hiện có: <b>8 mẫu cảnh code</b> — Quả cầu nuốt cảnh · Cân so sánh · Mạng lưới node · Dòng thời gian · Rơi &amp; xếp chồng · Bản đồ hành trình · Cỗ máy vận hành · Người trong cảnh — <b>cộng 8 mẫu Style2 số liệu</b> (nhóm "Style2 — số liệu" trong bảng Đổi cảnh): bộ đếm số, biểu đồ đường, thanh giá, vòng xoáy chết, thẻ trích dẫn, thẻ định nghĩa, GAME OVER, thẻ kết kênh. Mẫu Style2 sửa được tiêu đề/số liệu ngay trên thẻ câu, có chữ chạy + caption pop-up.<br><br>
     Mọi mẫu cảnh đều CÓ CHUYỂN ĐỘNG + HIỆU ỨNG. Dữ kiện trích từ câu (số %, tên 2 phía, số năm...) được đưa thẳng vào hình khi render.</p>
   </section>
   <section class="panel">
@@ -249,13 +289,20 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
     <div id="previewCap">Xem trước động của mẫu cảnh đang chọn ở cột 2.</div></div>
     <div id="libBox">
       <h3>THƯ VIỆN STYLE2 (TỪ VIDEO NOKIA)</h3>
-      <div id="libGrid"></div>
+      <input id="libSearch" type="text" placeholder="Tìm: gõ tên hoặc từ khoá (vd: sup do, dien thoai, chart)...">
+      <div class="pchips" id="libChips"></div>
+      <div id="libGroups"></div>
+      <details id="libRefs">
+        <summary>THAM CHIẾU VẼ (3 ảnh thật — không dùng làm nền)</summary>
+        <div id="libRefGrid" class="libgrid"></div>
+        <p class="note">Ảnh thật của người nổi tiếng, chỉ dùng làm mẫu để vẽ chân dung pixel — KHÔNG đặt làm nền video.</p>
+      </details>
       <p class="note" id="libNote">Đang tải thư viện...</p>
     </div>
     <label class="lbl">Giọng đọc (cố định):</label>
     <div class="row"><select id="voice" disabled><option>am_adam — giọng cố định của kênh</option></select></div>
     <label class="lbl">Định dạng:</label>
-    <div class="row"><select id="fmt" disabled><option>Ngang 16:9 (1920×1080)</option></select></div>
+    <div class="row"><select id="fmt"><option value="16:9" selected>Ngang 16:9 (1920×1080)</option><option value="9:16">Dọc 9:16 (1080×1920) — cho Shorts</option></select></div>
     <label class="lbl">Nhạc nền (thư viện retro có sẵn):</label>
     <div class="row"><select id="music"><option value="">Không nhạc</option></select></div>
     <p class="note">12 bài nhạc chiptune 8/16-bit đã tích hợp sẵn trong tool — chọn 1 bài, nhạc tự lặp liền mạch hết video và nằm nhỏ dưới giọng đọc. Muốn thêm bài riêng: chép file .mp3 vào thư mục <b>music</b> của tool rồi tải lại trang.</p>
@@ -290,6 +337,7 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
 </div>
 <script>
 const SCENES = __SCENES_JSON__;
+const CODE_SCENES = SCENES.filter(x => !x.tpl);
 const TARGETS = ['Trên – trái','Trên – giữa','Trên – phải','Giữa – trái','Chính giữa','Giữa – phải','Dưới – trái','Dưới – giữa','Dưới – phải'];
 let sentences = [];
 let cardsState = [];
@@ -298,7 +346,60 @@ let activeCard = 0;
 let pickerCard = -1;
 let pickerGroup = 'Tất cả';
 function sceneById(id){ return SCENES.find(x => x.id === id); }
-function sceneGif(id){ return '/previews/scene-0' + id + '.gif'; }
+function sceneGif(id){
+  const sc = sceneById(id);
+  if (sc && sc.gif) return sc.gif;
+  if (typeof id === 'string' && id.indexOf('s2:') === 0)
+    return '/previews/style2-' + id.slice(3) + '.gif';
+  return '/previews/scene-0' + id + '.gif';
+}
+function tplDefaults(sc){
+  const o = {};
+  (sc.params || []).forEach(p => { o[p.key] = p.def; });
+  return o;
+}
+function buildTplForm(st, sc){
+  const box = document.createElement('div'); box.className = 'tplBox';
+  const lb = document.createElement('span'); lb.className = 'lbl2';
+  lb.textContent = 'THAM SỐ MẪU STYLE2 (sửa chữ / số liệu ngay tại đây):';
+  box.appendChild(lb);
+  if (!st.tparams) st.tparams = tplDefaults(sc);
+  (sc.params || []).forEach(p => {
+    const row = document.createElement('div'); row.className = 'tplRow';
+    const l = document.createElement('span'); l.className = 'tplLbl';
+    l.textContent = p.label + ':';
+    const inp = document.createElement('input');
+    inp.type = (p.type === 'number') ? 'number' : 'text';
+    inp.value = (st.tparams[p.key] != null) ? st.tparams[p.key] : p.def;
+    inp.addEventListener('input', () => { st.tparams[p.key] = inp.value; });
+    row.appendChild(l); row.appendChild(inp); box.appendChild(row);
+  });
+  const tRow = document.createElement('div'); tRow.className = 'tplRow';
+  const tLbl = document.createElement('span'); tLbl.className = 'tplLbl';
+  tLbl.textContent = 'Chữ chạy (gõ từng ký tự):';
+  const tChk = document.createElement('input'); tChk.type = 'checkbox';
+  tChk.checked = st.typedOn !== false;
+  tChk.addEventListener('change', () => { st.typedOn = tChk.checked; });
+  const tIn = document.createElement('input'); tIn.type = 'text';
+  tIn.placeholder = 'Để trống = dùng chữ của câu';
+  tIn.value = st.typedText || '';
+  tIn.addEventListener('input', () => { st.typedText = tIn.value; });
+  tRow.appendChild(tLbl); tRow.appendChild(tChk); tRow.appendChild(tIn);
+  box.appendChild(tRow);
+  const pRow = document.createElement('div'); pRow.className = 'tplRow';
+  const pLbl = document.createElement('span'); pLbl.className = 'tplLbl';
+  pLbl.textContent = 'Caption pop-up (~1.2s đầu cảnh):';
+  const pChk = document.createElement('input'); pChk.type = 'checkbox';
+  pChk.checked = !!st.popupOn;
+  pChk.addEventListener('change', () => { st.popupOn = pChk.checked; });
+  const pIn = document.createElement('input'); pIn.type = 'text';
+  pIn.placeholder = 'Chữ lớn vàng giữa màn hình — để trống = dùng chữ của câu';
+  pIn.value = st.popupText || '';
+  pIn.addEventListener('input', () => { st.popupText = pIn.value; });
+  pRow.appendChild(pLbl); pRow.appendChild(pChk); pRow.appendChild(pIn);
+  box.appendChild(pRow);
+  return box;
+}
 function setActive(i){
   activeCard = i;
   document.querySelectorAll('#cards .card').forEach((c, j) => c.classList.toggle('active', j === i));
@@ -359,7 +460,7 @@ function renderCards(results){
         st.scene = results[i].scene;
         st.source = results[i].scene ? 'auto' : 'none';
       } else if (!autoOn()){
-        const def = SCENES[i % SCENES.length];
+        const def = CODE_SCENES[i % CODE_SCENES.length];
         st.scene = def.id; st.source = 'default'; st.auto = null;
       }
     }
@@ -377,7 +478,7 @@ function renderCards(results){
     });
     const top = document.createElement('div'); top.className = 'top';
     const img = document.createElement('img'); img.className = 'pv';
-    img.src = '/previews/scene-0' + (st.scene || 1) + '.gif';
+    img.src = sceneGif(st.scene || 1);
     img.alt = '';
     img.addEventListener('click', () => { setActive(i); });
     const right = document.createElement('div'); right.style.flex = '1';
@@ -416,7 +517,8 @@ function renderCards(results){
     right.appendChild(selLbl);
     const sRow = document.createElement('div'); sRow.className = 'sceneRow';
     const cur = document.createElement('div'); cur.className = 'cur';
-    cur.textContent = st.scene ? (st.scene + ' · ' + ((sceneById(st.scene) || {}).name || '')) : '— chưa chọn cảnh —';
+    const scNow = sceneById(st.scene);
+    cur.textContent = st.scene ? ((scNow && scNow.tpl) ? scNow.name : (st.scene + ' · ' + ((scNow || {}).name || ''))) : '— chưa chọn cảnh —';
     const chBtn = document.createElement('button'); chBtn.className = 'mini'; chBtn.textContent = 'Đổi cảnh';
     chBtn.addEventListener('click', () => openPicker(i));
     sRow.appendChild(cur); sRow.appendChild(chBtn);
@@ -426,6 +528,7 @@ function renderCards(results){
     right.appendChild(tm);
     top.appendChild(img); top.appendChild(right);
     card.appendChild(top);
+    if (scNow && scNow.tpl) card.appendChild(buildTplForm(st, scNow));
     const aLbl = document.createElement('span'); aLbl.className = 'lbl2';
     aLbl.textContent = 'MŨI TÊN CHÚ THÍCH (tùy chọn):';
     card.appendChild(aLbl);
@@ -515,6 +618,14 @@ fetch('/api/music').then(r=>r.json()).then(list=>{
   const sel = document.getElementById('music');
   list.forEach(f=>{ const o=document.createElement('option'); o.value=f; o.textContent=f; sel.appendChild(o); });
 });
+document.getElementById('fmt').addEventListener('change', (e) => {
+  const v = e.target.value;
+  const img = document.getElementById('previewImg');
+  img.style.aspectRatio = (v === '9:16') ? '9 / 16' : '16 / 9';
+  img.style.objectFit = 'contain';
+  img.style.background = '#000';
+  document.getElementById('previewBox').style.maxWidth = (v === '9:16') ? '320px' : '';
+});
 let poll = null;
 document.getElementById('renderBtn').addEventListener('click', async () => {
   const missing = cardsState.findIndex(st => !st.scene);
@@ -524,21 +635,31 @@ document.getElementById('renderBtn').addEventListener('click', async () => {
     return;
   }
   const job = cardsState.map(st => {
-    const item = { text: st.text, scene: st.scene };
-    if (st.source === 'auto' && st.auto && st.auto.params && Object.keys(st.auto.params).length)
-      item.params = st.auto.params;
+    const item = { text: st.text };
+    const sc = sceneById(st.scene);
+    if (sc && sc.tpl){
+      item.template = String(st.scene).slice(3);
+      item.tparams = st.tparams || tplDefaults(sc);
+      item.typed = { on: st.typedOn !== false, text: (st.typedText || '').trim() };
+      item.popup = { on: !!st.popupOn, text: (st.popupText || '').trim() };
+    } else {
+      item.scene = st.scene;
+      if (st.source === 'auto' && st.auto && st.auto.params && Object.keys(st.auto.params).length)
+        item.params = st.auto.params;
+    }
     const lbl = (st.label || '').trim();
     if (lbl) item.annotation = { label: lbl, target: st.target != null ? st.target : 4 };
     if (st.bgFile) item.bg = st.bgFile;
     return item;
   });
   const music = document.getElementById('music').value;
+  const fmtVal = document.getElementById('fmt').value;
   const btn = document.getElementById('renderBtn');
   btn.disabled = true; btn.textContent = 'ĐANG RENDER...';
   document.getElementById('barWrap').style.display='block';
   document.getElementById('doneBox').style.display='none';
   const resp = await fetch('/api/render', {method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({sentences: job, music: music})});
+    body: JSON.stringify({sentences: job, music: music, format: fmtVal})});
   if (!resp.ok){
     const e = await resp.json().catch(()=>({}));
     btn.disabled=false; btn.textContent='▶ RENDER VIDEO';
@@ -614,7 +735,7 @@ function renderPickerGrid(){
   list.forEach(sc => {
     const it = document.createElement('div'); it.className = 'pitem';
     const im = document.createElement('img'); im.src = sceneGif(sc.id); it.appendChild(im);
-    const nm = document.createElement('div'); nm.className = 'sn'; nm.textContent = sc.id + ' · ' + sc.name; it.appendChild(nm);
+    const nm = document.createElement('div'); nm.className = 'sn'; nm.textContent = sc.tpl ? sc.name : (sc.id + ' · ' + sc.name); it.appendChild(nm);
     const gp = document.createElement('div'); gp.className = 'sg'; gp.textContent = 'nhóm: ' + sc.group; it.appendChild(gp);
     it.addEventListener('click', () => pickScene(sc.id));
     grid.appendChild(it);
@@ -622,6 +743,14 @@ function renderPickerGrid(){
 }
 function pickScene(id){
   const st = cardsState[pickerCard]; if (!st) return;
+  if (st.scene !== id){
+    const sc = sceneById(id);
+    if (sc && sc.tpl){
+      st.tparams = tplDefaults(sc);
+      st.typedOn = true; st.typedText = '';
+      st.popupOn = false; st.popupText = '';
+    }
+  }
   st.scene = id; st.source = 'manual'; bumpUsage(id);
   const idx = pickerCard; closePicker(); renderCards(null); setActive(idx);
 }
@@ -656,30 +785,106 @@ document.getElementById('joinBtn').addEventListener('click', async () => {
 });
 loadJoinList();
 
-// ===== THU VIEN STYLE2 (V2.2) =====
+// ===== THU VIEN STYLE2 (V2.3: chia nhom + tim kiem + tags + dat lam nen) =====
+const LIB_GROUPS = [
+  ['dienthoai', 'Điện thoại'],
+  ['canhnen', 'Cảnh nền'],
+  ['andu', 'Ẩn dụ'],
+  ['template', 'Template — số liệu'],
+  ['chandung', 'Chân dung pixel'],
+];
+let libItems = [];
+let libGroup = 'all';
+let libQuery = '';
 function showLibItem(it, src){
   document.getElementById('previewImg').src = src;
   document.getElementById('previewCap').textContent =
-    'THƯ VIỆN: ' + it.name + ' (' + it.kind + ' · ' + it.group + ') — ' + it.tags;
+    'THƯ VIỆN: ' + it.name + ' (' + it.kind + ' · ' + (it.dgroup || it.group) + ') — ' + it.tags;
+}
+function setLibBg(it){
+  const st = cardsState[activeCard];
+  if (!st){ alert('Chưa có thẻ câu nào để đặt nền.'); return; }
+  st.bgFile = it.file.split('/').pop();
+  st.bgName = it.name + ' (từ thư viện Style2)';
+  renderCards(null);
+  document.getElementById('previewCap').textContent =
+    'Đã đặt "' + it.name + '" làm ẢNH NỀN cho câu ' + (activeCard + 1) +
+    ' — xem ở thẻ câu cột 2, bấm Render để thấy trong video.';
+}
+function libCellEl(it, withBg){
+  const cell = document.createElement('div'); cell.className = 'libcell';
+  const src = '/' + (it.kind === 'template' ? (it.preview || it.file) : it.file);
+  const img = document.createElement('img');
+  img.src = src; img.alt = it.name; img.loading = 'lazy';
+  const cap = document.createElement('div'); cap.className = 'libcap'; cap.textContent = it.name;
+  const tags = document.createElement('div'); tags.className = 'libtags'; tags.textContent = it.tags || '';
+  cell.title = it.name + ' · ' + (it.dgroup || it.group) + ' · ' + (it.tags || '');
+  cell.appendChild(img); cell.appendChild(cap); cell.appendChild(tags);
+  if (withBg){
+    const b = document.createElement('button'); b.className = 'libbg';
+    b.textContent = 'Đặt làm nền';
+    b.addEventListener('click', (e) => { e.stopPropagation(); setLibBg(it); });
+    cell.appendChild(b);
+  }
+  cell.addEventListener('click', () => showLibItem(it, src));
+  return cell;
+}
+function renderLibrary(){
+  const chips = document.getElementById('libChips');
+  chips.innerHTML = '';
+  const counts = {};
+  LIB_GROUPS.forEach(([k]) => { counts[k] = 0; });
+  libItems.forEach(it => { if (counts[it.dgroup] != null) counts[it.dgroup]++; });
+  const mkChip = (key, label) => {
+    const c = document.createElement('span');
+    c.className = 'pchip' + (libGroup === key ? ' on' : '');
+    c.textContent = label;
+    c.addEventListener('click', () => { libGroup = key; renderLibrary(); });
+    chips.appendChild(c);
+  };
+  mkChip('all', 'Tất cả');
+  LIB_GROUPS.forEach(([k, l]) => mkChip(k, l + ' (' + counts[k] + ')'));
+  const q = libQuery.trim().toLowerCase();
+  const matchQ = (it) => {
+    if (!q) return true;
+    const hay = (it.name + ' ' + (it.tags || '') + ' ' + (it.dgroup || '')).toLowerCase();
+    return q.split(/\s+/).every(w => hay.includes(w));
+  };
+  const wrap = document.getElementById('libGroups');
+  wrap.innerHTML = '';
+  let shown = 0;
+  LIB_GROUPS.forEach(([k, label]) => {
+    const items = libItems.filter(it => it.dgroup === k &&
+      (libGroup === 'all' || libGroup === k) && matchQ(it));
+    if (!items.length) return;
+    const h = document.createElement('div'); h.className = 'libgh';
+    h.textContent = label.toUpperCase() + ' (' + items.length + ')';
+    const g = document.createElement('div'); g.className = 'libgrid';
+    items.forEach(it => { g.appendChild(libCellEl(it, it.kind === 'image')); shown++; });
+    wrap.appendChild(h); wrap.appendChild(g);
+  });
+  const refs = libItems.filter(it => it.dgroup === 'thamchieu' && matchQ(it));
+  const rg = document.getElementById('libRefGrid');
+  rg.innerHTML = '';
+  refs.forEach(it => rg.appendChild(libCellEl(it, false)));
+  document.getElementById('libRefs').style.display = refs.length ? '' : 'none';
+  const hidden = libItems.filter(it => it.hidden).length;
+  document.getElementById('libNote').textContent =
+    'Đang hiện ' + shown + ' mục' +
+    (hidden ? ' · đã ẩn ' + hidden + ' mục hỗ trợ nội bộ (chỉ code dùng)' : '') +
+    ' — bấm 1 mục để xem lớn ở hộp xem trước; nút "Đặt làm nền" gán ảnh cho câu đang chọn ở cột 2.';
 }
 fetch('/api/library').then(r => r.json()).then(list => {
-  const grid = document.getElementById('libGrid');
-  const note = document.getElementById('libNote');
-  const shown = (list || []).filter(it => it.kind === 'template' || it.kind === 'image');
-  if (!shown.length){ note.textContent = 'Thư viện trống.'; return; }
-  note.textContent = shown.length + ' mục (template có GIF động, ảnh là nền style2) — bấm vào 1 mục để xem lớn ở hộp xem trước phía trên.';
-  shown.forEach(it => {
-    const cell = document.createElement('div'); cell.className = 'libcell';
-    const src = '/' + (it.kind === 'template' ? (it.preview || it.file) : it.file);
-    const img = document.createElement('img');
-    img.src = src; img.alt = it.name; img.loading = 'lazy';
-    const cap = document.createElement('div'); cap.className = 'libcap'; cap.textContent = it.name;
-    cell.title = it.name + ' · ' + it.group + ' · ' + it.tags;
-    cell.appendChild(img); cell.appendChild(cap);
-    cell.addEventListener('click', () => showLibItem(it, src));
-    grid.appendChild(cell);
-  });
+  libItems = list || [];
+  if (!libItems.length){
+    document.getElementById('libNote').textContent = 'Thư viện trống.';
+    return;
+  }
+  renderLibrary();
 }).catch(() => { document.getElementById('libNote').textContent = 'Không tải được thư viện.'; });
+document.getElementById('libSearch').addEventListener('input', (e) => {
+  libQuery = e.target.value; renderLibrary();
+});
 
 rebuild();
 </script>
@@ -713,11 +918,19 @@ class Handler(BaseHTTPRequestHandler):
         path = urllib.parse.unquote(u.path)
         if path == "/":
             cat = {c["id"]: c for c in auto_mod.scene_catalog()}
-            scenes_json = json.dumps(
-                [{"id": sid, "name": v[0], "desc": v[1],
-                  "group": cat.get(sid, {}).get("group", "Khác"),
-                  "tags": cat.get(sid, {}).get("tags", "")}
-                 for sid, v in sorted(scenes_mod.SCENES.items())])
+            entries = [{"id": sid, "name": v[0], "desc": v[1],
+                        "group": cat.get(sid, {}).get("group", "Khác"),
+                        "tags": cat.get(sid, {}).get("tags", "")}
+                       for sid, v in sorted(scenes_mod.SCENES.items())]
+            # V2.3: 8 template style2 la MAU CANH THAT (id "s2:<key>"),
+            # kem SPEC tham so de UI tu sinh form tren the cau.
+            entries += [{"id": "s2:" + t["key"], "name": t["name"],
+                         "desc": t["desc"], "group": "Style2 — số liệu",
+                         "tags": t["tags"], "tpl": True,
+                         "params": t["params"],
+                         "gif": "/previews/style2-" + t["key"] + ".gif"}
+                        for t in s2s_mod.template_catalog()]
+            scenes_json = json.dumps(entries)
             self._send(200, PAGE.replace("__SCENES_JSON__", scenes_json))
         elif path == "/api/music":
             self._send(200, json.dumps(_music_files()), "application/json")
@@ -797,14 +1010,31 @@ class Handler(BaseHTTPRequestHandler):
                 for s in data["sentences"]:
                     if not str(s.get("text", "")).strip():
                         continue
-                    if s.get("scene") in (None, ""):
-                        raise ValueError(
-                            "Co cau chua chon canh — hay chon tay truoc "
-                            "khi Render")
-                    item = {"text": str(s["text"]),
-                            "scene": int(s["scene"])}
-                    if isinstance(s.get("params"), dict) and s["params"]:
-                        item["params"] = s["params"]
+                    item = {"text": str(s["text"])}
+                    tpl = s.get("template")
+                    if tpl:
+                        if str(tpl) not in s2s_mod.TEMPLATES:
+                            raise ValueError(
+                                "Template khong ton tai: %s" % tpl)
+                        item["template"] = str(tpl)
+                        tp = s.get("tparams")
+                        if isinstance(tp, dict):
+                            item["tparams"] = {str(k): str(v)
+                                                for k, v in tp.items()}
+                        for cf_key in ("typed", "popup"):
+                            cf = s.get(cf_key)
+                            if isinstance(cf, dict):
+                                item[cf_key] = {
+                                    "on": bool(cf.get("on")),
+                                    "text": str(cf.get("text", "")).strip()}
+                    else:
+                        if s.get("scene") in (None, ""):
+                            raise ValueError(
+                                "Co cau chua chon canh — hay chon tay "
+                                "truoc khi Render")
+                        item["scene"] = int(s["scene"])
+                        if isinstance(s.get("params"), dict) and s["params"]:
+                            item["params"] = s["params"]
                     ann = s.get("annotation")
                     if isinstance(ann, dict) and str(
                             ann.get("label", "")).strip():
@@ -824,13 +1054,16 @@ class Handler(BaseHTTPRequestHandler):
                               if music else None)
                 if music_path and not os.path.isfile(music_path):
                     music_path = None
+                fmt = data.get("format")
+                if fmt not in ("16:9", "9:16"):
+                    fmt = "16:9"
                 with _job_lock:
                     if _job["state"] == "running":
                         return self._send(409, json.dumps(
                             {"error": "Dang co 1 video dang render"}),
                             "application/json")
                 threading.Thread(target=_run_job,
-                                 args=(sentences, music_path),
+                                 args=(sentences, music_path, fmt),
                                  daemon=True).start()
                 self._send(200, json.dumps({"ok": True}), "application/json")
             except Exception as e:
@@ -895,7 +1128,7 @@ def main():
     previews_mod.ensure_previews(log=lambda m: print(m, flush=True))
     srv = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
     url = "http://localhost:%d" % PORT
-    print("PIXEL STUDIO V2.2 dang chay o %s (Ctrl+C de tat)" % url, flush=True)
+    print("PIXEL STUDIO V2.3 dang chay o %s (Ctrl+C de tat)" % url, flush=True)
     if not os.environ.get("PIXEL_NO_OPEN"):
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     try:

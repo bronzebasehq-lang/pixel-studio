@@ -1,4 +1,4 @@
-# PIXEL STUDIO V2.2 — Hướng dẫn dùng (cho người mới, không cần biết code)
+# PIXEL STUDIO V2.3 — Hướng dẫn dùng (cho người mới, không cần biết code)
 
 Tool làm video giải thích **vẽ hoàn toàn bằng code**, phong cách **PIXEL 16-BIT**
 đã khóa cứng: bạn dán kịch bản → tool tự gán cảnh theo nội dung → bấm Render →
@@ -7,6 +7,31 @@ không gửi đi đâu, không tốn phí).
 
 Đây là **dự án riêng cho kênh mới**, tách biệt hẳn tool videos hiện tại —
 hai tool không dùng chung gì cả, cứ yên tâm dùng song song.
+
+## MỚI Ở V2.3 (25/10/2026)
+
+1. **Thư viện gọn + tìm được:** thư viện Style2 ở cột 3 đã chia nhóm có
+   tiêu đề (Điện thoại · Cảnh nền · Ẩn dụ · Template — số liệu · Chân
+   dung pixel), có **ô tìm kiếm** lọc theo tên/từ khoá/nhóm, mỗi mục
+   hiện sẵn **từ khoá** dưới tên. 3 ảnh thật chuyển vào mục **"Tham
+   chiếu vẽ"** thu gọn ở cuối thư viện (chỉ để tham chiếu vẽ, KHÔNG
+   dùng làm nền); 5 mục hỗ trợ nội bộ của template được ẩn khỏi lưới.
+   Mỗi ảnh có nút **"Đặt làm nền"** — gán thẳng làm ảnh nền cho câu
+   đang chọn ở cột 2.
+2. **8 template Style2 thành mẫu cảnh thật:** counter, chart,
+   price_bars, death_spiral, quote_card, definition_card, game_over,
+   end_card — chọn ở bảng **Đổi cảnh** (nhóm "Style2 — số liệu"). Mỗi
+   thẻ câu hiện **form sửa tham số** ngay trên thẻ (tiêu đề, nhãn, số
+   liệu... sửa là render ra shot mới, không còn chữ Nokia nướng cứng);
+   có thêm **chữ chạy** gõ từng ký tự (mặc định lấy chữ của câu, tắt
+   hoặc ghi đè được) và **caption pop-up** chữ lớn vàng hiện ~1,2 giây
+   đầu cảnh, phủ lên trên media.
+3. **Định dạng dọc 9:16 cho Shorts:** ô **Định dạng** ở cột 3 đã mở
+   khoá — chọn "Dọc 9:16 (1080×1920)" để render video dọc: nền sao phủ
+   kín cả khung, nội dung cảnh nằm giữa khung theo chiều dọc, không
+   kéo giãn méo hình. Áp dụng cho cả cảnh code lẫn template Style2.
+
+---
 
 ## MỚI Ở V2.2 (25/10/2026)
 
@@ -133,8 +158,9 @@ Cách đơn giản nhất:
 3. Muốn quay lại cảnh code: bấm **"Bỏ ảnh nền"** trên thẻ.
 
 ### Bước 5: Chọn nhạc + Render
-1. Cột 3: giọng đọc đã khóa sẵn **am_adam** (không cần chọn), định dạng
-   ngang 16:9 (1920×1080).
+1. Cột 3: giọng đọc đã khóa sẵn **am_adam** (không cần chọn). Ô
+   **Định dạng**: Ngang 16:9 (1920×1080, mặc định) hoặc **Dọc 9:16
+   (1080×1920)** nếu làm Shorts.
 2. Ở ô **"Nhạc nền"**: chọn 1 trong **11 bài retro có sẵn** (bài 00 là
    nhạc chủ đề chính của kênh; 01–10 theo các tâm trạng: đi lên, căng
    thẳng, sụp đổ, thắng lợi...), hoặc để **"Không nhạc"**.

@@ -12,7 +12,9 @@ Chay doc lap:
 import argparse
 import datetime
 import json
+import math
 import os
+import random
 import re
 import subprocess
 import sys
@@ -26,18 +28,53 @@ sys.path.insert(0, ENGINE_DIR)
 if os.path.isfile(os.path.join(TOOL_DIR, "ffmpeg.exe")):
     os.environ["PATH"] = TOOL_DIR + os.pathsep + os.environ.get("PATH", "")
 
-from PIL import Image  # noqa: E402
+from PIL import Image, ImageDraw  # noqa: E402
 
 import annotate as annot_mod  # noqa: E402
 import painter as painter_mod  # noqa: E402
 import scenes as scenes_mod  # noqa: E402
+import style2_scenes as s2s_mod  # noqa: E402
 import subtitles as sub_mod  # noqa: E402
 import voice as voice_mod  # noqa: E402
 
 FPS = 30
 OUT_W, OUT_H = 1920, 1080
+VERT_W, VERT_H = 1080, 1920   # dinh dang doc 9:16 (Shorts) - V2.3
 LEAD = 0.15    # giay im lang truoc khi giong bat dau trong moi canh
 TAIL = 0.25    # giay duoi sau khi giong ket thuc
+
+# Sao cho nen doc: sinh 1 lan, co dinh (seed) de cac frame lien nhau on dinh
+_rng_v = random.Random(99)
+_VSTARS = [(_rng_v.uniform(0.01, 0.99), _rng_v.uniform(0.01, 0.82),
+            _rng_v.random(), _rng_v.uniform(0, 6.28)) for _ in range(150)]
+
+
+def _out_size(fmt):
+    return (VERT_W, VERT_H) if fmt == "9:16" else (OUT_W, OUT_H)
+
+
+def _vertical_bg(tm):
+    """Nen doc 1080x1920: troi sao + dat ve phu KIN khung (khong den tran).
+
+    Ve o luoi thap 180x320 (dung bang mau khoa cua painter) roi phong
+    NEAREST - cung chat pixel 16-bit nhu nen ngang."""
+    pal = painter_mod.PAL
+    lw, lh = 180, 320
+    low = Image.new("RGB", (lw, lh), pal["sky"])
+    dr = ImageDraw.Draw(low)
+    bands = [(0.0, 0.30, pal["sky_top"]), (0.30, 0.58, pal["sky"]),
+             (0.58, 0.85, pal["sky_low"]), (0.85, 1.0, pal["ground"])]
+    for y0f, y1f, c in bands:
+        dr.rectangle([0, int(y0f * lh), lw, int(y1f * lh)], fill=c)
+    gy = int(0.85 * lh)
+    dr.rectangle([0, gy, lw, gy + 2], fill=pal["ground_hi"])
+    for (fx, fy, b, ph) in _VSTARS:
+        v = b * (0.68 + 0.32 * math.sin(tm * 2.1 + ph))
+        c = pal["star"] if v > 0.42 else pal["star_dim"]
+        s = 2 if v > 0.80 else 1
+        gx, gy2 = int(fx * lw), int(fy * lh)
+        dr.rectangle([gx, gy2, gx + s - 1, gy2 + s - 1], fill=c)
+    return low.resize((VERT_W, VERT_H), Image.NEAREST)
 
 
 def split_script(text):
@@ -61,17 +98,22 @@ def _load_bg(bg_path):
 
 def _render_segment(seg_idx, text, scene_id, wav_path, seg_dur, work_dir,
                     progress=None, total_frames=1, frames_done=0,
-                    params=None, annotation=None, bg_img=None):
+                    params=None, annotation=None, bg_img=None,
+                    fmt="16:9", template=None):
     """Ve frame cua 1 canh, pipe thang vao ffmpeg kem tieng. Tra ve file mp4.
     V2: params = du kien tham so hoa canh; annotation = mui ten chu thich
-    {label, target}; bg_img = anh nen lai (PIL 320x180) thay canh code."""
+    {label, target}; bg_img = anh nen lai (PIL 320x180) thay canh code.
+    V2.3: fmt = "16:9" | "9:16" (doc: nen sao phu kin khung 1080x1920,
+    noi dung ngang dat giua khung, KHONG keo gian); template = dict
+    {name, tparams, typed, popup} -> shot ve bang template style2."""
     seg_path = os.path.join(work_dir, "seg-%02d.mp4" % seg_idx)
     n_frames = max(1, int(round(seg_dur * FPS)))
-    black = Image.new("RGB", (OUT_W, OUT_H), (0, 0, 0))
+    out_w, out_h = _out_size(fmt)
+    vertical = (fmt == "9:16")
     cmd = [
         "ffmpeg", "-y",
         "-f", "rawvideo", "-pix_fmt", "rgb24",
-        "-s", "%dx%d" % (OUT_W, OUT_H), "-r", str(FPS), "-i", "pipe:",
+        "-s", "%dx%d" % (out_w, out_h), "-r", str(FPS), "-i", "pipe:",
         "-i", wav_path,
         "-filter_complex",
         "[1:a]adelay=%d|%d,apad,atrim=0:%.3f[a]" % (int(LEAD * 1000),
@@ -88,7 +130,12 @@ def _render_segment(seg_idx, text, scene_id, wav_path, seg_dur, work_dir,
         for i in range(n_frames):
             tm = i / FPS
             t = i / (n_frames - 1) if n_frames > 1 else 1.0
-            if bg_img is not None:
+            if template is not None:
+                frame = s2s_mod.draw_template(
+                    template["name"], template.get("tparams"),
+                    tm, seg_dur, text, template.get("typed"),
+                    template.get("popup")).convert("RGB")
+            elif bg_img is not None:
                 frame = bg_img.copy()
             else:
                 frame = scenes_mod.draw_scene(scene_id, t, tm, params)
@@ -101,14 +148,31 @@ def _render_segment(seg_idx, text, scene_id, wav_path, seg_dur, work_dir,
                         annotation["label"],
                         int(annotation.get("target", 4)), a_scale)
                     base = frame.convert("RGBA")
-                    base.alpha_composite(low_layer)
+                    if frame.size == low_layer.size:
+                        base.alpha_composite(low_layer)
+                    else:
+                        base.alpha_composite(low_layer.resize(
+                            (OUT_W, OUT_H), Image.NEAREST))
                     frame = base.convert("RGB")
-            frame = frame.resize((OUT_W, OUT_H), Image.NEAREST)
+            if frame.size != (OUT_W, OUT_H):
+                frame = frame.resize((OUT_W, OUT_H), Image.NEAREST)
             if hi_layer is not None:
                 base = frame.convert("RGBA")
                 base.alpha_composite(hi_layer)
                 frame = base.convert("RGB")
-            frame = sub_mod.draw_subtitle(frame, text)
+            if vertical:
+                # nen sao phu kin khung doc; noi dung ngang phong theo
+                # chieu ngang 1080 (cao 607) dat giua khung - khong meo
+                canvas = _vertical_bg(tm)
+                band_h = int(VERT_W * 9 / 16)
+                canvas.paste(frame.resize((VERT_W, band_h), Image.NEAREST),
+                             (0, (VERT_H - band_h) // 2))
+                frame = canvas
+            # Shot template co CHU CHAY bat thi chu chay dong vai phu de
+            # (dung ban Nokia goc) - khong ve them phu de tinh trung lap.
+            if not (template is not None
+                    and s2s_mod.typed_enabled(template.get("typed"))):
+                frame = sub_mod.draw_subtitle(frame, text)
             # HARD CUT 100% giua cac canh (chuan khoa cua kenh) - KHONG fade.
             # Ban cu co fade-in 0.35s + fade-out 0.25s moi doan -> video dai
             # nhap nhay lien tuc; Minh phat hien 22/10, da go bo.
@@ -124,8 +188,13 @@ def _render_segment(seg_idx, text, scene_id, wav_path, seg_dur, work_dir,
 
 
 def render_job(sentences, music_path=None, out_path=None, progress=None,
-               log=print):
-    """sentences: [{'text':..., 'scene': 1..8}] -> tra ve duong dan video."""
+               log=print, fmt="16:9"):
+    """sentences: [{'text':..., 'scene': 1..8}] hoac cau template style2
+    {'text':..., 'template': <key>, 'tparams': {...}, 'typed': {...},
+    'popup': {...}} -> tra ve duong dan video.
+    fmt: "16:9" (1920x1080) hoac "9:16" (1080x1920, cho Shorts)."""
+    if fmt not in ("16:9", "9:16"):
+        fmt = "16:9"
     tempfile.tempdir = os.path.join(TOOL_DIR, "work")
     os.makedirs(tempfile.tempdir, exist_ok=True)
     work_dir = tempfile.mkdtemp(prefix="job-", dir=tempfile.tempdir)
@@ -143,13 +212,22 @@ def render_job(sentences, music_path=None, out_path=None, progress=None,
                 annotation.get("label", "")).strip():
             annotation = None
         bg_img = _load_bg(s["bg"]) if s.get("bg") else None
-        segs.append({"text": s["text"], "scene": int(s["scene"]),
+        tpl = s.get("template") or None
+        tpl_info = None
+        if tpl:
+            tpl_info = {"name": str(tpl),
+                        "tparams": s.get("tparams") or {},
+                        "typed": s.get("typed"), "popup": s.get("popup")}
+        segs.append({"text": s["text"],
+                     "scene": int(s.get("scene") or 0),
                      "wav": wav, "dur": seg_dur,
                      "params": s.get("params") or None,
-                     "annotation": annotation, "bg_img": bg_img})
+                     "annotation": annotation, "bg_img": bg_img,
+                     "template": tpl_info})
         total_dur += seg_dur
-        log("[render] Cau %d/%d: giong %.2fs -> canh %.2fs (mau %d)"
-            % (i + 1, len(sentences), dur, seg_dur, int(s["scene"])))
+        log("[render] Cau %d/%d: giong %.2fs -> canh %.2fs (mau %s)"
+            % (i + 1, len(sentences), dur, seg_dur,
+               ("style2:" + str(tpl)) if tpl else int(s.get("scene") or 0)))
     total_frames = max(1, int(round(total_dur * FPS)))
 
     # 2) render tung doan
@@ -159,7 +237,8 @@ def render_job(sentences, music_path=None, out_path=None, progress=None,
         seg_files.append(_render_segment(
             i, sg["text"], sg["scene"], sg["wav"], sg["dur"], work_dir,
             progress, total_frames, done, params=sg["params"],
-            annotation=sg["annotation"], bg_img=sg["bg_img"]))
+            annotation=sg["annotation"], bg_img=sg["bg_img"],
+            fmt=fmt, template=sg["template"]))
         done += int(round(sg["dur"] * FPS))
 
     # 3) ghep cac doan (hard cut, cung tham so nen copy thang)
@@ -202,6 +281,8 @@ def main():
     ap.add_argument("--scenes", default=None,
                     help="Danh sach mau canh, cach nhau dau phay, vd: 1,8,3")
     ap.add_argument("--music", default=None)
+    ap.add_argument("--format", default="16:9", choices=["16:9", "9:16"],
+                    help="16:9 ngang (mac dinh) hoac 9:16 doc cho Shorts")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     text = a.script
@@ -216,7 +297,7 @@ def main():
     if len(scene_ids) < len(sents):
         scene_ids += [scene_ids[-1]] * (len(sents) - len(scene_ids))
     job = [{"text": s, "scene": scene_ids[i]} for i, s in enumerate(sents)]
-    out = render_job(job, music_path=a.music, out_path=a.out,
+    out = render_job(job, music_path=a.music, out_path=a.out, fmt=a.format,
                      progress=lambda k: print("[render] %.0f%%" % (k * 100)))
     print(json.dumps({"video": out}))
 
