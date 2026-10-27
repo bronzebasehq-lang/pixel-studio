@@ -34,6 +34,7 @@ import annotate as annot_mod  # noqa: E402
 import painter as painter_mod  # noqa: E402
 import scenes as scenes_mod  # noqa: E402
 import style2_scenes as s2s_mod  # noqa: E402
+import test01_scenes as t1s_mod  # noqa: E402
 import subtitles as sub_mod  # noqa: E402
 import voice as voice_mod  # noqa: E402
 
@@ -131,10 +132,16 @@ def _render_segment(seg_idx, text, scene_id, wav_path, seg_dur, work_dir,
             tm = i / FPS
             t = i / (n_frames - 1) if n_frames > 1 else 1.0
             if template is not None:
-                frame = s2s_mod.draw_template(
-                    template["name"], template.get("tparams"),
-                    tm, seg_dur, text, template.get("typed"),
-                    template.get("popup")).convert("RGB")
+                if template.get("pack") == "test01":
+                    frame = t1s_mod.draw_template(
+                        template["name"], template.get("tparams"),
+                        tm, seg_dur, text, template.get("typed"),
+                        template.get("popup")).convert("RGB")
+                else:
+                    frame = s2s_mod.draw_template(
+                        template["name"], template.get("tparams"),
+                        tm, seg_dur, text, template.get("typed"),
+                        template.get("popup")).convert("RGB")
             elif bg_img is not None:
                 frame = bg_img.copy()
             else:
@@ -215,7 +222,11 @@ def render_job(sentences, music_path=None, out_path=None, progress=None,
         tpl = s.get("template") or None
         tpl_info = None
         if tpl:
-            tpl_info = {"name": str(tpl),
+            pack = s.get("tpack")
+            if pack not in ("style2", "test01"):
+                pack = ("test01" if str(tpl) in t1s_mod.TEMPLATES
+                        else "style2")
+            tpl_info = {"name": str(tpl), "pack": pack,
                         "tparams": s.get("tparams") or {},
                         "typed": s.get("typed"), "popup": s.get("popup")}
         segs.append({"text": s["text"],
@@ -229,6 +240,27 @@ def render_job(sentences, music_path=None, out_path=None, progress=None,
             % (i + 1, len(sentences), dur, seg_dur,
                ("style2:" + str(tpl)) if tpl else int(s.get("scene") or 0)))
     total_frames = max(1, int(round(total_dur * FPS)))
+
+    # 1b) BO QUET NHIP (spec goi test01 muc 1): doan nao >5s khong co
+    # bien co hinh anh thi canh bao vao log. Chi chay khi job co canh
+    # test01; canh thuong chi dong gop moc bat dau canh.
+    if any(sg["template"] and sg["template"].get("pack") == "test01"
+           for sg in segs):
+        _shots = []
+        for sg in segs:
+            tp = sg["template"]
+            if tp and tp.get("pack") == "test01":
+                _shots.append({
+                    "name": "test01:" + tp["name"], "dur": sg["dur"],
+                    "events": t1s_mod.events_for(
+                        tp["name"], tp.get("tparams"), sg["dur"])})
+            else:
+                _shots.append({
+                    "name": (tp or {}).get("name") or
+                            ("scene %s" % sg["scene"]),
+                    "dur": sg["dur"], "events": [(0.0, "start")]})
+        for w in t1s_mod.scan_pacing(_shots):
+            log("[nhip] CANH BAO: %s" % w)
 
     # 2) render tung doan
     seg_files = []

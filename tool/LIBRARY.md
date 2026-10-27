@@ -108,3 +108,13 @@
 - Thời lượng shot = thời lượng voice + 0.55s (`DURS = [v + 0.55 for v in VOICE]`).
 - Giọng chuẩn: Kokoro am_adam — `engine/voice.py`: SID_AM_ADAM = 5, SPEED = 1.0.
 - Mix chuẩn: nhạc nền volume 0.34, loudnorm I=-15 : TP=-1.5 : LRA=11 (`engine/render.py`).
+
+## Gói test01 — kinetic (thêm 2026-10-27)
+
+- **Là gì:** gói phong cách thứ hai cạnh Style2, theo SPEC v2 tại `~/workspace/pixel-tool-mockup/kinetic-pack-v1/SPEC.md`: chữ là diễn viên chính trên nền nâu đen (#1F0D08→#0D0604), nhấn đỏ cam/xanh ngọc/trắng kem/vàng, nhịp biến cố liên tục, KHÔNG linh vật.
+- **Chọn trong UI:** bảng Đổi cảnh → nhóm **"test01 — kinetic"** (id cảnh `t1:<key>`), sửa chữ/số bằng form tham số trên thẻ câu như Style2. Gói pixel/Style2 cũ giữ nguyên 100%.
+- **Code:** `engine/test01_templates.py` (11 hàm vẽ frame 1280×720, chỉ PIL) + `engine/test01_scenes.py` (registry + `events_for` + bộ quét nhịp `scan_pacing` — cảnh báo khi >5s không biến cố, ghi vào log render) + `engine/make_test01_previews.py` (sinh GIF preview `previews/test01-<key>.gif`). `server.py`/`engine/render.py` chỉ thêm nhánh dispatch theo `tpack`, không đổi hành vi cũ.
+- **11 mẫu:** hook_cards (thẻ xòe quạt) · stamp_big (đóng dấu) · type_window (cửa sổ gõ chữ) · stage_text (sân khấu chữ, glitch RGB ở từ khóa) · ab_compare (A/B) · item_rows (hàng mục) · big_counter (bộ đếm) · cell_grid (lưới ô) · progress_bar (% + HP) · combo_chain (×N + thanh năng lượng) · follow_end (nút THEO DÕI + con trỏ bấm).
+- **Font hệ A:** `fonts/NotoSans-Black.ttf` (chép từ /usr/share/fonts — máy KHÔNG có Be Vietnam Pro; Noto Sans Black phủ đủ dấu tiếng Việt). Hệ B: PressStart2P/VT323 sẵn có.
+- **SFX:** project chưa có thư viện tiếng → tự tổng hợp bằng ffmpeg (sine/noise) qua `engine/test01_sfx.py`, file tại `sfx-test01/` (pop/stamp/type/tick/tick_rise_0..10/glitch/click/whoosh).
+- **Video mẫu kiểm chứng:** `test01-sample/test01-sample.mp4` (42,8s, 1280×720, không giọng, nhạc 09-retro-chase lặp + SFX theo biến cố, loudnorm −16) + 12 khung tĩnh `frame-XX-*.png` + `scan.txt` (quét nhịp: ĐẠT) + script `test01-sample/render_sample.py`.

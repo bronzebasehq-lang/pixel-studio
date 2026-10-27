@@ -33,6 +33,7 @@ import previews as previews_mod  # noqa: E402
 import render as render_mod  # noqa: E402
 import scenes as scenes_mod  # noqa: E402
 import style2_scenes as s2s_mod  # noqa: E402
+import test01_scenes as t1s_mod  # noqa: E402
 
 PORT = 8766
 VIDEOS_DIR = os.path.join(TOOL_DIR, "Videos")
@@ -261,6 +262,7 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
   <p class="sub">Dán kịch bản → tool TỰ GÁN cảnh theo nội dung từng câu → chỉnh tay nếu muốn → Render. Không cần biết code.</p>
   <div class="lock"><b>PHONG CÁCH ĐÃ KHÓA: PIXEL 16-BIT</b> — lưới 320×180, phóng NEAREST, đổ bóng 2–3 tông + dithering.<br>
   <span class="c3">MỚI Ở V2.3: THƯ VIỆN CHIA NHÓM + Ô TÌM KIẾM + NÚT ĐẶT LÀM NỀN · 8 TEMPLATE STYLE2 THÀNH MẪU CẢNH CÓ FORM SỬA SỐ LIỆU + CHỮ CHẠY + CAPTION POP-UP · THÊM ĐỊNH DẠNG DỌC 9:16 CHO SHORTS.</span><br>
+  <span class="c3">GÓI TEST01 — KINETIC (MỚI): 11 MẪU CHỮ CHUYỂN ĐỘNG KIỂU "GIỮ CHÂN" Ở NHÓM "test01 — kinetic" TRONG BẢNG ĐỔI CẢNH: THẺ HOOK · ĐÓNG DẤU · CỬA SỔ GÕ CHỮ · SÂN KHẤU CHỮ · SO SÁNH A/B · HÀNG MỤC · BỘ ĐẾM LỚN · LƯỚI Ô · THANH TIẾN TRÌNH/HP · COMBO · MÀN HÌNH CUỐI THEO DÕI.</span><br>
   <span class="c2">DỰ ÁN RIÊNG CHO KÊNH MỚI — tách biệt hẳn tool videos hiện tại.</span></div>
 </header>
 <main>
@@ -277,7 +279,8 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
     <p class="note" style="margin-top:8px">Manh mối gán cảnh: <span class="hl-pct">■ số %/tăng</span> · <span class="hl-vs">■ so sánh</span> · <span class="hl-step">■ thứ tự bước</span> · <span class="hl-year">■ mốc năm</span></p>
     <div class="chips"><span class="chip" id="chipCount">0 câu thoại</span><span class="chip" id="chipAuto">0 / 0 đã TỰ GÁN</span><span class="chip" id="chipDur">~0 giây</span></div>
     <p class="note">Thư viện mẫu cảnh hiện có: <b>8 mẫu cảnh code</b> — Quả cầu nuốt cảnh · Cân so sánh · Mạng lưới node · Dòng thời gian · Rơi &amp; xếp chồng · Bản đồ hành trình · Cỗ máy vận hành · Người trong cảnh — <b>cộng 8 mẫu Style2 số liệu</b> (nhóm "Style2 — số liệu" trong bảng Đổi cảnh): bộ đếm số, biểu đồ đường, thanh giá, vòng xoáy chết, thẻ trích dẫn, thẻ định nghĩa, GAME OVER, thẻ kết kênh. Mẫu Style2 sửa được tiêu đề/số liệu ngay trên thẻ câu, có chữ chạy + caption pop-up.<br><br>
-    Mọi mẫu cảnh đều CÓ CHUYỂN ĐỘNG + HIỆU ỨNG. Dữ kiện trích từ câu (số %, tên 2 phía, số năm...) được đưa thẳng vào hình khi render.</p>
+    Mọi mẫu cảnh đều CÓ CHUYỂN ĐỘNG + HIỆU ỨNG. Dữ kiện trích từ câu (số %, tên 2 phía, số năm...) được đưa thẳng vào hình khi render.<br><br>
+<b>Gói test01 — kinetic (11 mẫu):</b> phong cách chữ chuyển động "giữ chân" trên nền nâu đen (thẻ hook, đóng dấu, cửa sổ gõ chữ, sân khấu chữ, so sánh A/B, hàng mục, bộ đếm lớn, lưới ô, thanh tiến trình/HP, combo, màn hình cuối) — chọn trong bảng Đổi cảnh, nhóm "test01 — kinetic", sửa chữ/số ngay trên thẻ câu như mẫu Style2.</p>
   </section>
   <section class="panel">
     <h2>2 · TỪNG CÂU — TỰ GÁN CẢNH</h2>
@@ -349,6 +352,8 @@ function sceneById(id){ return SCENES.find(x => x.id === id); }
 function sceneGif(id){
   const sc = sceneById(id);
   if (sc && sc.gif) return sc.gif;
+  if (typeof id === 'string' && id.indexOf('t1:') === 0)
+    return '/previews/test01-' + id.slice(3) + '.gif';
   if (typeof id === 'string' && id.indexOf('s2:') === 0)
     return '/previews/style2-' + id.slice(3) + '.gif';
   return '/previews/scene-0' + id + '.gif';
@@ -361,7 +366,9 @@ function tplDefaults(sc){
 function buildTplForm(st, sc){
   const box = document.createElement('div'); box.className = 'tplBox';
   const lb = document.createElement('span'); lb.className = 'lbl2';
-  lb.textContent = 'THAM SỐ MẪU STYLE2 (sửa chữ / số liệu ngay tại đây):';
+  lb.textContent = (String(sc.id).indexOf('t1:') === 0)
+    ? 'THAM SỐ MẪU TEST01 (sửa chữ / số liệu ngay tại đây):'
+    : 'THAM SỐ MẪU STYLE2 (sửa chữ / số liệu ngay tại đây):';
   box.appendChild(lb);
   if (!st.tparams) st.tparams = tplDefaults(sc);
   (sc.params || []).forEach(p => {
@@ -639,6 +646,7 @@ document.getElementById('renderBtn').addEventListener('click', async () => {
     const sc = sceneById(st.scene);
     if (sc && sc.tpl){
       item.template = String(st.scene).slice(3);
+      item.tpack = String(st.scene).indexOf('t1:') === 0 ? 'test01' : 'style2';
       item.tparams = st.tparams || tplDefaults(sc);
       item.typed = { on: st.typedOn !== false, text: (st.typedText || '').trim() };
       item.popup = { on: !!st.popupOn, text: (st.popupText || '').trim() };
@@ -930,6 +938,14 @@ class Handler(BaseHTTPRequestHandler):
                          "params": t["params"],
                          "gif": "/previews/style2-" + t["key"] + ".gif"}
                         for t in s2s_mod.template_catalog()]
+            # GOI TEST01 (kinetic/giu chan): 11 mau chu chuyen dong,
+            # id "t1:<key>", cung co che form tham so nhu style2.
+            entries += [{"id": "t1:" + t["key"], "name": t["name"],
+                         "desc": t["desc"], "group": "test01 — kinetic",
+                         "tags": t["tags"], "tpl": True,
+                         "params": t["params"],
+                         "gif": "/previews/test01-" + t["key"] + ".gif"}
+                        for t in t1s_mod.template_catalog()]
             scenes_json = json.dumps(entries)
             self._send(200, PAGE.replace("__SCENES_JSON__", scenes_json))
         elif path == "/api/music":
@@ -1013,10 +1029,14 @@ class Handler(BaseHTTPRequestHandler):
                     item = {"text": str(s["text"])}
                     tpl = s.get("template")
                     if tpl:
-                        if str(tpl) not in s2s_mod.TEMPLATES:
+                        tpack = str(s.get("tpack") or "style2")
+                        registry = (t1s_mod.TEMPLATES if tpack == "test01"
+                                    else s2s_mod.TEMPLATES)
+                        if str(tpl) not in registry:
                             raise ValueError(
                                 "Template khong ton tai: %s" % tpl)
                         item["template"] = str(tpl)
+                        item["tpack"] = tpack
                         tp = s.get("tparams")
                         if isinstance(tp, dict):
                             item["tparams"] = {str(k): str(v)
