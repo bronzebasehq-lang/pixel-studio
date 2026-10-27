@@ -34,6 +34,7 @@ import render as render_mod  # noqa: E402
 import scenes as scenes_mod  # noqa: E402
 import style2_scenes as s2s_mod  # noqa: E402
 import test01_scenes as t1s_mod  # noqa: E402
+import packs as packs_mod  # noqa: E402
 
 PORT = 8766
 VIDEOS_DIR = os.path.join(TOOL_DIR, "Videos")
@@ -131,7 +132,7 @@ PAGE = r"""<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<title>PIXEL STUDIO V2.3 — Tự gán cảnh + template Style2 có form + dọc 9:16</title>
+<title>PIXEL STUDIO V2.5 — 5 gói phong cách: PIXEL 16-BIT · STAGE · CRT · PAPER · ZINE</title>
 <style>
 @font-face { font-family:'VT323'; src:url('/fonts/VT323.ttf'); }
 @font-face { font-family:'PS2P'; src:url('/fonts/PressStart2P.ttf'); }
@@ -254,18 +255,32 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
 #doneBox { display:none; margin-top:12px; }
 #doneBox a { display:inline-block; margin-right:10px; background:#221f42; border:2px solid #40c8dc; color:#40c8dc; padding:9px 14px; text-decoration:none; font-family:'VT323'; font-size:19px; }
 .err { color:#ff5d73 !important; }
+#packGrid { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
+.packCard { border:2px solid #3a3570; background:#221f42; padding:10px 8px; cursor:pointer; text-align:center; }
+.packCard:hover { border-color:#40c8dc; }
+.packCard.on { border-color:#ffd84f; box-shadow:0 0 0 1px #ffd84f; }
+.packCard .pdot { width:26px; height:26px; margin:0 auto 6px; border:2px solid #000; }
+.packCard .pname { font-family:'VT323'; font-size:21px; color:#fff; line-height:1.05; }
+.packCard .pcnt { font-size:12px; color:#40c8dc; margin-top:2px; }
+.packCard .pdesc { font-size:12px; color:#a8a8c8; margin-top:5px; line-height:1.35; }
+.packChip { flex:none; font-family:'VT323'; font-size:16px; color:#0d0a24; background:#ffd84f; padding:2px 8px; align-self:center; }
 </style>
 </head>
 <body>
 <header>
-  <h1>PIXEL STUDIO <span class="tag">— V2.3 · tool video vẽ bằng code</span></h1>
+  <h1>PIXEL STUDIO <span class="tag">— V2.5 · tool video vẽ bằng code</span></h1>
   <p class="sub">Dán kịch bản → tool TỰ GÁN cảnh theo nội dung từng câu → chỉnh tay nếu muốn → Render. Không cần biết code.</p>
   <div class="lock"><b>PHONG CÁCH ĐÃ KHÓA: PIXEL 16-BIT</b> — lưới 320×180, phóng NEAREST, đổ bóng 2–3 tông + dithering.<br>
-  <span class="c3">MỚI Ở V2.3: THƯ VIỆN CHIA NHÓM + Ô TÌM KIẾM + NÚT ĐẶT LÀM NỀN · 8 TEMPLATE STYLE2 THÀNH MẪU CẢNH CÓ FORM SỬA SỐ LIỆU + CHỮ CHẠY + CAPTION POP-UP · THÊM ĐỊNH DẠNG DỌC 9:16 CHO SHORTS.</span><br>
-  <span class="c3">GÓI TEST01 — KINETIC (MỚI): 11 MẪU CHỮ CHUYỂN ĐỘNG KIỂU "GIỮ CHÂN" Ở NHÓM "test01 — kinetic" TRONG BẢNG ĐỔI CẢNH: THẺ HOOK · ĐÓNG DẤU · CỬA SỔ GÕ CHỮ · SÂN KHẤU CHỮ · SO SÁNH A/B · HÀNG MỤC · BỘ ĐẾM LỚN · LƯỚI Ô · THANH TIẾN TRÌNH/HP · COMBO · MÀN HÌNH CUỐI THEO DÕI.</span><br>
+  <span class="c3">MỚI Ở V2.5: 5 GÓI PHONG CÁCH RIÊNG — PIXEL 16-BIT · STAGE · CRT · PAPER · ZINE — CHỌN Ở MỤC 0 ĐẦU TRANG, MỖI VIDEO THUỘC ĐÚNG 1 GÓI · MỖI MẪU CÓ BIẾN THỂ BỐ CỤC TỰ XOAY CHỐNG TRÙNG KHUÔN · LOG RENDER CÓ QUÉT NHỊP + QUÉT TRÙNG.</span><br>
+  <span class="c3">GÓI STAGE — KINETIC: 11 MẪU CHỮ CHUYỂN ĐỘNG KIỂU "GIỮ CHÂN" (TÊN CŨ: TEST01) Ở NHÓM "STAGE — kinetic" TRONG BẢNG ĐỔI CẢNH: THẺ HOOK · ĐÓNG DẤU · CỬA SỔ GÕ CHỮ · SÂN KHẤU CHỮ · SO SÁNH A/B · HÀNG MỤC · BỘ ĐẾM LỚN · LƯỚI Ô · THANH TIẾN TRÌNH/HP · COMBO · MÀN HÌNH CUỐI THEO DÕI.</span><br>
   <span class="c2">DỰ ÁN RIÊNG CHO KÊNH MỚI — tách biệt hẳn tool videos hiện tại.</span></div>
 </header>
 <main>
+  <section class="panel">
+    <h2>0 · GÓI PHONG CÁCH — CHỌN 1 GÓI CHO CẢ VIDEO</h2>
+    <div id="packGrid"></div>
+    <p class="note">Mỗi video thuộc đúng 1 gói: danh sách cảnh chọn được chỉ gồm mẫu của gói đó. Đổi gói = tool gán lại cảnh từ đầu theo gói mới (chữ kịch bản giữ nguyên, lựa chọn cảnh tay sẽ đặt lại). Job cũ thuộc gói PIXEL mở lên vẫn chạy y như trước.</p>
+  </section>
   <section class="panel">
     <h2>1 · KỊCH BẢN (dán chữ vào)</h2>
     <textarea id="script">It grew 300% in just 3 years. ChatGPT vs Claude: which one wins? First, connect the tools. Then the system runs itself.</textarea>
@@ -280,7 +295,7 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
     <div class="chips"><span class="chip" id="chipCount">0 câu thoại</span><span class="chip" id="chipAuto">0 / 0 đã TỰ GÁN</span><span class="chip" id="chipDur">~0 giây</span></div>
     <p class="note">Thư viện mẫu cảnh hiện có: <b>8 mẫu cảnh code</b> — Quả cầu nuốt cảnh · Cân so sánh · Mạng lưới node · Dòng thời gian · Rơi &amp; xếp chồng · Bản đồ hành trình · Cỗ máy vận hành · Người trong cảnh — <b>cộng 8 mẫu Style2 số liệu</b> (nhóm "Style2 — số liệu" trong bảng Đổi cảnh): bộ đếm số, biểu đồ đường, thanh giá, vòng xoáy chết, thẻ trích dẫn, thẻ định nghĩa, GAME OVER, thẻ kết kênh. Mẫu Style2 sửa được tiêu đề/số liệu ngay trên thẻ câu, có chữ chạy + caption pop-up.<br><br>
     Mọi mẫu cảnh đều CÓ CHUYỂN ĐỘNG + HIỆU ỨNG. Dữ kiện trích từ câu (số %, tên 2 phía, số năm...) được đưa thẳng vào hình khi render.<br><br>
-<b>Gói test01 — kinetic (11 mẫu):</b> phong cách chữ chuyển động "giữ chân" trên nền nâu đen (thẻ hook, đóng dấu, cửa sổ gõ chữ, sân khấu chữ, so sánh A/B, hàng mục, bộ đếm lớn, lưới ô, thanh tiến trình/HP, combo, màn hình cuối) — chọn trong bảng Đổi cảnh, nhóm "test01 — kinetic", sửa chữ/số ngay trên thẻ câu như mẫu Style2.</p>
+<b>Gói STAGE — kinetic (11 mẫu, tên cũ test01):</b> phong cách chữ chuyển động "giữ chân" trên nền nâu đen (thẻ hook, đóng dấu, cửa sổ gõ chữ, sân khấu chữ, so sánh A/B, hàng mục, bộ đếm lớn, lưới ô, thanh tiến trình/HP, combo, màn hình cuối) — chọn gói ở mục 0 phía trên, sửa chữ/số ngay trên thẻ câu như mẫu Style2.<br><br><b>3 gói mới:</b> <b>CRT</b> (terminal xanh lá phát sáng, giải mã scramble, log [OK], OVERCLOCK), <b>PAPER</b> (giấy kem mực đen, note vàng, tem đỏ, font viết tay Itim), <b>ZINE</b> (cắt dán tạp chí — mỗi từ 1 ô giấy tự xáo font/màu/góc theo từng video). <b>Lớp biến thể chống trùng khuôn:</b> mỗi mẫu ở 4 gói template có 2 biến thể bố cục — để trống ô "Biến thể bố cục" là tool tự xoay theo vị trí câu + dấu vân của kịch bản (cùng kịch bản render lại = cùng kết quả); render xong xem log: có dòng [nhip] quét nhịp và [trung] cảnh báo trùng khuôn.</p>
   </section>
   <section class="panel">
     <h2>2 · TỪNG CÂU — TỰ GÁN CẢNH</h2>
@@ -340,6 +355,43 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
 </div>
 <script>
 const SCENES = __SCENES_JSON__;
+const PACKS = __PACKS_JSON__;
+let currentPack = 'pixel';
+function packById(pk){ return PACKS.find(p => p.id === pk) || PACKS[0]; }
+function scenePackId(sc){ return (sc && sc.pack) || 'pixel'; }
+function packSceneList(pk){ return SCENES.filter(x => scenePackId(x) === pk); }
+function tpackForScene(id){
+  const sc = sceneById(id);
+  if (!sc || !sc.tpl) return null;
+  if (String(id).indexOf('s2:') === 0) return 'style2';
+  return sc.pack || 'style2';
+}
+function renderPackPicker(){
+  const grid = document.getElementById('packGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  PACKS.forEach(pk => {
+    const card = document.createElement('div');
+    card.className = 'packCard' + (pk.id === currentPack ? ' on' : '');
+    const dot = document.createElement('div'); dot.className = 'pdot';
+    dot.style.background = pk.color; card.appendChild(dot);
+    const nm = document.createElement('div'); nm.className = 'pname';
+    nm.textContent = pk.label; card.appendChild(nm);
+    const cnt = document.createElement('div'); cnt.className = 'pcnt';
+    cnt.textContent = packSceneList(pk.id).length + ' mẫu cảnh'; card.appendChild(cnt);
+    const ds = document.createElement('div'); ds.className = 'pdesc';
+    ds.textContent = pk.desc; card.appendChild(ds);
+    card.addEventListener('click', () => setPack(pk.id));
+    grid.appendChild(card);
+  });
+}
+function setPack(pk){
+  if (pk === currentPack) return;
+  currentPack = pk;
+  renderPackPicker();
+  cardsState = [];
+  rebuild();
+}
 const CODE_SCENES = SCENES.filter(x => !x.tpl);
 const TARGETS = ['Trên – trái','Trên – giữa','Trên – phải','Giữa – trái','Chính giữa','Giữa – phải','Dưới – trái','Dưới – giữa','Dưới – phải'];
 let sentences = [];
@@ -352,10 +404,11 @@ function sceneById(id){ return SCENES.find(x => x.id === id); }
 function sceneGif(id){
   const sc = sceneById(id);
   if (sc && sc.gif) return sc.gif;
-  if (typeof id === 'string' && id.indexOf('t1:') === 0)
-    return '/previews/test01-' + id.slice(3) + '.gif';
-  if (typeof id === 'string' && id.indexOf('s2:') === 0)
-    return '/previews/style2-' + id.slice(3) + '.gif';
+  const GPRE = {'t1:':'test01-','s2:':'style2-','ct:':'crt-','pp:':'paper-','zn:':'zine-'};
+  if (typeof id === 'string'){
+    for (const pre in GPRE)
+      if (id.indexOf(pre) === 0) return '/previews/' + GPRE[pre] + id.slice(3) + '.gif';
+  }
   return '/previews/scene-0' + id + '.gif';
 }
 function tplDefaults(sc){
@@ -366,9 +419,8 @@ function tplDefaults(sc){
 function buildTplForm(st, sc){
   const box = document.createElement('div'); box.className = 'tplBox';
   const lb = document.createElement('span'); lb.className = 'lbl2';
-  lb.textContent = (String(sc.id).indexOf('t1:') === 0)
-    ? 'THAM SỐ MẪU TEST01 (sửa chữ / số liệu ngay tại đây):'
-    : 'THAM SỐ MẪU STYLE2 (sửa chữ / số liệu ngay tại đây):';
+  lb.textContent = 'THAM SỐ MẪU ' + packById(scenePackId(sc)).label.toUpperCase() +
+    ' (sửa chữ / số liệu ngay tại đây):';
   box.appendChild(lb);
   if (!st.tparams) st.tparams = tplDefaults(sc);
   (sc.params || []).forEach(p => {
@@ -467,7 +519,10 @@ function renderCards(results){
         st.scene = results[i].scene;
         st.source = results[i].scene ? 'auto' : 'none';
       } else if (!autoOn()){
-        const def = CODE_SCENES[i % CODE_SCENES.length];
+        // goi pixel giu nguyen hanh vi cu: mac dinh chi xoay 8 canh code
+        const pool = (currentPack === 'pixel') ? CODE_SCENES
+                                               : packSceneList(currentPack);
+        const def = pool[i % pool.length];
         st.scene = def.id; st.source = 'default'; st.auto = null;
       }
     }
@@ -526,9 +581,11 @@ function renderCards(results){
     const cur = document.createElement('div'); cur.className = 'cur';
     const scNow = sceneById(st.scene);
     cur.textContent = st.scene ? ((scNow && scNow.tpl) ? scNow.name : (st.scene + ' · ' + ((scNow || {}).name || ''))) : '— chưa chọn cảnh —';
+    const pkChip = document.createElement('span'); pkChip.className = 'packChip';
+    pkChip.textContent = packById(scNow ? scenePackId(scNow) : currentPack).label;
     const chBtn = document.createElement('button'); chBtn.className = 'mini'; chBtn.textContent = 'Đổi cảnh';
     chBtn.addEventListener('click', () => openPicker(i));
-    sRow.appendChild(cur); sRow.appendChild(chBtn);
+    sRow.appendChild(cur); sRow.appendChild(pkChip); sRow.appendChild(chBtn);
     right.appendChild(sRow);
     const tm = document.createElement('div'); tm.className = 'time';
     tm.textContent = 'Ước tính ~' + estDur(s).toFixed(1) + 's · hiệu ứng: hiện dần + chuyển động riêng của mẫu';
@@ -600,8 +657,11 @@ async function rebuild(){
   let results = null;
   if (autoOn() && sentences.length){
     try {
-      const r = await fetch('/api/analyze', { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ sentences: sentences }) });
+      const url = (currentPack === 'pixel') ? '/api/analyze' : '/api/suggest-pack';
+      const body = (currentPack === 'pixel') ? { sentences: sentences }
+                                             : { pack: currentPack, sentences: sentences };
+      const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body) });
       const out = await r.json();
       if (seq !== analyzeSeq) return;
       results = out.results;
@@ -621,6 +681,7 @@ document.getElementById('autoToggle').addEventListener('change', () => {
   cardsState = [];
   rebuild();
 });
+renderPackPicker();
 fetch('/api/music').then(r=>r.json()).then(list=>{
   const sel = document.getElementById('music');
   list.forEach(f=>{ const o=document.createElement('option'); o.value=f; o.textContent=f; sel.appendChild(o); });
@@ -646,7 +707,7 @@ document.getElementById('renderBtn').addEventListener('click', async () => {
     const sc = sceneById(st.scene);
     if (sc && sc.tpl){
       item.template = String(st.scene).slice(3);
-      item.tpack = String(st.scene).indexOf('t1:') === 0 ? 'test01' : 'style2';
+      item.tpack = tpackForScene(st.scene);
       item.tparams = st.tparams || tplDefaults(sc);
       item.typed = { on: st.typedOn !== false, text: (st.typedText || '').trim() };
       item.popup = { on: !!st.popupOn, text: (st.popupText || '').trim() };
@@ -706,7 +767,7 @@ function openPicker(i){
 }
 function closePicker(){ document.getElementById('picker').style.display = 'none'; pickerCard = -1; }
 function buildPickerGroups(){
-  const groups = ['Tất cả'].concat([...new Set(SCENES.map(x => x.group))]);
+  const groups = ['Tất cả'].concat([...new Set(packSceneList(currentPack).map(x => x.group))]);
   const box = document.getElementById('pickerGroups'); box.innerHTML = '';
   groups.forEach(g => {
     const c = document.createElement('span'); c.className = 'pchip' + (g === pickerGroup ? ' on' : '');
@@ -720,7 +781,8 @@ function buildPickerSugg(){
   const row = document.getElementById('pickerSugg');
   const lbl = document.getElementById('suggLbl');
   row.innerHTML = '';
-  const top3 = (st && st.auto && st.auto.top3) ? st.auto.top3 : [];
+  const top3 = ((st && st.auto && st.auto.top3) ? st.auto.top3 : [])
+    .filter(t => { const s2 = sceneById(t.scene); return s2 && scenePackId(s2) === currentPack; });
   if (!top3.length){ row.style.display = 'none'; lbl.style.display = 'none'; return; }
   lbl.style.display = 'block'; row.style.display = 'flex';
   top3.forEach(t => {
@@ -735,7 +797,8 @@ function buildPickerSugg(){
 function renderPickerGrid(){
   const q = document.getElementById('pickerSearch').value.trim().toLowerCase();
   const u = usageMap();
-  const list = SCENES.filter(sc => (pickerGroup === 'Tất cả' || sc.group === pickerGroup) &&
+  const list = SCENES.filter(sc => scenePackId(sc) === currentPack &&
+    (pickerGroup === 'Tất cả' || sc.group === pickerGroup) &&
     (!q || sc.name.toLowerCase().includes(q) || (sc.tags || '').includes(q)));
   list.sort((a, b) => ((u[b.id] || 0) - (u[a.id] || 0)) || (a.id - b.id));
   const grid = document.getElementById('pickerGrid'); grid.innerHTML = '';
@@ -928,26 +991,39 @@ class Handler(BaseHTTPRequestHandler):
             cat = {c["id"]: c for c in auto_mod.scene_catalog()}
             entries = [{"id": sid, "name": v[0], "desc": v[1],
                         "group": cat.get(sid, {}).get("group", "Khác"),
-                        "tags": cat.get(sid, {}).get("tags", "")}
+                        "tags": cat.get(sid, {}).get("tags", ""),
+                        "pack": "pixel"}
                        for sid, v in sorted(scenes_mod.SCENES.items())]
             # V2.3: 8 template style2 la MAU CANH THAT (id "s2:<key>"),
             # kem SPEC tham so de UI tu sinh form tren the cau.
             entries += [{"id": "s2:" + t["key"], "name": t["name"],
                          "desc": t["desc"], "group": "Style2 — số liệu",
-                         "tags": t["tags"], "tpl": True,
+                         "tags": t["tags"], "tpl": True, "pack": "pixel",
                          "params": t["params"],
                          "gif": "/previews/style2-" + t["key"] + ".gif"}
                         for t in s2s_mod.template_catalog()]
-            # GOI TEST01 (kinetic/giu chan): 11 mau chu chuyen dong,
-            # id "t1:<key>", cung co che form tham so nhu style2.
-            entries += [{"id": "t1:" + t["key"], "name": t["name"],
-                         "desc": t["desc"], "group": "test01 — kinetic",
-                         "tags": t["tags"], "tpl": True,
-                         "params": t["params"],
-                         "gif": "/previews/test01-" + t["key"] + ".gif"}
-                        for t in t1s_mod.template_catalog()]
+            # 4 GOI TEMPLATE (STAGE/CRT/PAPER/ZINE) qua registry packs:
+            # id "<prefix><key>", nhom hien thi = ten goi, gif theo tien to.
+            _gifpre = {"stage": "test01-", "crt": "crt-",
+                       "paper": "paper-", "zine": "zine-"}
+            for _pk in packs_mod.PACKS:
+                if not _pk["prefix"]:
+                    continue
+                _mod = packs_mod.module_for(_pk["id"])
+                _grp = _pk["label"] + (" — kinetic"
+                                       if _pk["id"] == "stage" else "")
+                entries += [{"id": _pk["prefix"] + t["key"],
+                             "name": t["name"], "desc": t["desc"],
+                             "group": _grp, "tags": t["tags"],
+                             "tpl": True, "pack": _pk["id"],
+                             "params": t["params"],
+                             "gif": "/previews/" + _gifpre[_pk["id"]]
+                                    + t["key"] + ".gif"}
+                            for t in _mod.template_catalog()]
             scenes_json = json.dumps(entries)
-            self._send(200, PAGE.replace("__SCENES_JSON__", scenes_json))
+            packs_json = json.dumps(packs_mod.PACKS)
+            self._send(200, PAGE.replace("__SCENES_JSON__", scenes_json)
+                                 .replace("__PACKS_JSON__", packs_json))
         elif path == "/api/music":
             self._send(200, json.dumps(_music_files()), "application/json")
         elif path == "/api/library":
@@ -997,6 +1073,29 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send(400, json.dumps({"error": str(e)}),
                            "application/json")
+        elif u.path == "/api/suggest-pack":
+            # Tu gan canh cho 4 goi template (stage/crt/paper/zine):
+            # tra cung dinh dang results nhu /api/analyze de UI dung chung.
+            try:
+                data = self._read_json()
+                pk = packs_mod.normalize_pack(
+                    str(data.get("pack") or "stage")) or "stage"
+                texts = [str(x) for x in data.get("sentences", [])]
+                used = {}
+                results = []
+                for idx, t in enumerate(texts):
+                    r = packs_mod.suggest(pk, t, idx, used)
+                    results.append({
+                        "scene": r["scene"], "name": r["name"],
+                        "reason": r["reason"],
+                        "match": max(1, min(5, r["match"])),
+                        "low_match": r["match"] < 2,
+                        "chips": [], "top3": [], "params": {}})
+                self._send(200, json.dumps({"results": results}),
+                           "application/json")
+            except Exception as e:
+                self._send(400, json.dumps({"error": str(e)}),
+                           "application/json")
         elif u.path == "/api/upload-bg":
             try:
                 data = self._read_json()
@@ -1029,8 +1128,11 @@ class Handler(BaseHTTPRequestHandler):
                     item = {"text": str(s["text"])}
                     tpl = s.get("template")
                     if tpl:
-                        tpack = str(s.get("tpack") or "style2")
-                        registry = (t1s_mod.TEMPLATES if tpack == "test01"
+                        # chap nhan alias cu "test01" (-> stage) + 5 goi
+                        tpack = (packs_mod.normalize_pack(
+                            str(s.get("tpack") or "style2")) or "style2")
+                        _mod = packs_mod.module_for(tpack)
+                        registry = (_mod.TEMPLATES if _mod is not None
                                     else s2s_mod.TEMPLATES)
                         if str(tpl) not in registry:
                             raise ValueError(

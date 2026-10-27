@@ -125,9 +125,14 @@ _PREP = {
 }
 
 
+def _layout_of(p):
+    return 1 if str(p.get("layout", "") or "").strip() == "2" else 0
+
+
 def _full_params(key, params, dur):
     info = TEMPLATES[key]
     p = _merged(info["params"], params)
+    p["_layout"] = _layout_of(p)
     prep = _PREP.get(key)
     if prep:
         p.update(prep(p, dur))
@@ -140,6 +145,7 @@ def _builder(key, draw_fn):
         def fn(t, dur):
             info = TEMPLATES[key]
             full = _merged(info["params"], p)
+            full["_layout"] = _layout_of(full)
             prep = _PREP.get(key)
             if prep:
                 full.update(prep(full, dur))
@@ -166,6 +172,8 @@ TEMPLATES = {
                   "text", "red"),
             _spec("sub", "Dòng dưới câu hỏi", "text",
                   "để AI dựng được video THẾ NÀY?"),
+            _spec("layout", "Biến thể bố cục (trống = tự xoay, 1/2)",
+                  "text", ""),
         ],
         "build": _builder("hook_cards", t1.hook_cards),
     },
@@ -180,6 +188,8 @@ TEMPLATES = {
             _spec("stamp", "Chữ trong tem", "text", "SAI!"),
             _spec("sub", "Dòng phụ dưới (để trống = không)", "text",
                   "câu hỏi đúng mới ra video đúng"),
+            _spec("layout", "Biến thể bố cục (trống = tự xoay, 1/2)",
+                  "text", ""),
         ],
         "build": _builder("stamp_big", t1.stamp_big),
     },
@@ -203,6 +213,8 @@ TEMPLATES = {
                   "|Không qua duyệt -> KHÔNG xuất."),
             _spec("colors", "Màu từng dòng (cách nhau dấu phẩy)", "text",
                   "cream,teal,teal,yellow,cream,red"),
+            _spec("layout", "Biến thể bố cục (trống = tự xoay, 1/2)",
+                  "text", ""),
         ],
         "build": _builder("type_window", t1.type_window),
     },
@@ -218,6 +230,8 @@ TEMPLATES = {
                   "red"),
             _spec("sub", "Dòng phụ pixel dưới (để trống = không)", "text",
                   "cùng một AI - khác người đạo diễn"),
+            _spec("layout", "Biến thể bố cục (trống = tự xoay, 1/2)",
+                  "text", ""),
         ],
         "build": _builder("stage_text", t1.stage_text),
     },
@@ -231,6 +245,8 @@ TEMPLATES = {
                   "KHÔNG AI ĐẠO DIỄN"),
             _spec("label_b", "Nhãn bên phải (đầy đủ)", "text",
                   "CÓ NGƯỜI ĐẠO DIỄN"),
+            _spec("layout", "Biến thể bố cục (trống = tự xoay, 1/2)",
+                  "text", ""),
         ],
         "build": _builder("ab_compare", t1.ab_compare),
     },
@@ -242,6 +258,8 @@ TEMPLATES = {
             _spec("title", "Tiêu đề", "text", "Ê-KÍP ĐẠO DIỄN GỒM:"),
             _spec("items", "Các mục (cách nhau dấu phẩy, tối đa 6)", "text",
                   "Kịch bản,Phân cảnh,Chuyển động,Phụ đề,Lồng tiếng,Âm thanh"),
+            _spec("layout", "Biến thể bố cục (trống = tự xoay, 1/2)",
+                  "text", ""),
         ],
         "build": _builder("item_rows", t1.item_rows),
     },
@@ -255,6 +273,8 @@ TEMPLATES = {
             _spec("label_col", "Màu nhãn (red/teal/yellow/cream)", "text",
                   "red"),
             _spec("sub", "Dòng phụ pixel dưới (để trống = không)", "text", ""),
+            _spec("layout", "Biến thể bố cục (trống = tự xoay, 1/2)",
+                  "text", ""),
         ],
         "build": _builder("big_counter", t1.big_counter),
     },
@@ -268,6 +288,8 @@ TEMPLATES = {
             _spec("cols", "Số cột", "number", "5"),
             _spec("caption", "Chú thích dưới (để trống = không)", "text",
                   "20 PHONG CÁCH dựng sẵn - chọn là chạy"),
+            _spec("layout", "Biến thể bố cục (trống = tự xoay, 1/2)",
+                  "text", ""),
         ],
         "build": _builder("cell_grid", t1.cell_grid),
     },
@@ -284,6 +306,8 @@ TEMPLATES = {
                   "yellow"),
             _spec("answer", "Dòng trả lời", "text",
                   "Là BẠN. Ý TƯỞNG CỦA BẠN. GU CỦA BẠN."),
+            _spec("layout", "Biến thể bố cục (trống = tự xoay, 1/2)",
+                  "text", ""),
         ],
         "build": _builder("progress_bar", t1.progress_bar),
     },
@@ -302,6 +326,8 @@ TEMPLATES = {
             _spec("done_text", "Chữ nút sau khi bấm", "text", "ĐÃ THEO DÕI"),
             _spec("side_text", "Chữ cạnh nút (để trống = không)", "text",
                   "để xem PHẦN 2"),
+            _spec("layout", "Biến thể bố cục (trống = tự xoay, 1/2)",
+                  "text", ""),
         ],
         "build": _builder("follow_end", t1.follow_end),
     },
@@ -316,10 +342,15 @@ TEMPLATES = {
             _spec("plus_text", "Chữ cộng nhịp", "text", "+1 Ý MỚI"),
             _spec("caption", "Chú thích dưới (để trống = không)", "text",
                   "mỗi ý mới = +1 combo - nhịp leo thang tới cuối video"),
+            _spec("layout", "Biến thể bố cục (trống = tự xoay, 1/2)",
+                  "text", ""),
         ],
         "build": _builder("combo_chain", t1.combo_chain),
     },
 }
+
+
+VARIANTS = {k: 2 for k in TEMPLATES}
 
 
 def template_catalog():

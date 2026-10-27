@@ -31,6 +31,7 @@ if os.path.isfile(os.path.join(TOOL_DIR, "ffmpeg.exe")):
 from PIL import Image, ImageDraw  # noqa: E402
 
 import annotate as annot_mod  # noqa: E402
+import packs as packs_mod  # noqa: E402
 import painter as painter_mod  # noqa: E402
 import scenes as scenes_mod  # noqa: E402
 import style2_scenes as s2s_mod  # noqa: E402
@@ -132,16 +133,12 @@ def _render_segment(seg_idx, text, scene_id, wav_path, seg_dur, work_dir,
             tm = i / FPS
             t = i / (n_frames - 1) if n_frames > 1 else 1.0
             if template is not None:
-                if template.get("pack") == "test01":
-                    frame = t1s_mod.draw_template(
-                        template["name"], template.get("tparams"),
-                        tm, seg_dur, text, template.get("typed"),
-                        template.get("popup")).convert("RGB")
-                else:
-                    frame = s2s_mod.draw_template(
-                        template["name"], template.get("tparams"),
-                        tm, seg_dur, text, template.get("typed"),
-                        template.get("popup")).convert("RGB")
+                mod = (packs_mod.module_for(template.get("pack"))
+                       or s2s_mod)
+                frame = mod.draw_template(
+                    template["name"], template.get("tparams"),
+                    tm, seg_dur, text, template.get("typed"),
+                    template.get("popup")).convert("RGB")
             elif bg_img is not None:
                 frame = bg_img.copy()
             else:
@@ -208,6 +205,8 @@ def render_job(sentences, music_path=None, out_path=None, progress=None,
     log("[render] Thu muc tam: %s" % work_dir)
 
     # 1) giong doc tung cau -> thoi luong canh = thoi luong giong that
+    job_seed = packs_mod.job_seed_of(
+        [str(s.get("text", "")) for s in sentences])
     segs = []
     total_dur = 0.0
     for i, s in enumerate(sentences):
@@ -222,13 +221,35 @@ def render_job(sentences, music_path=None, out_path=None, progress=None,
         tpl = s.get("template") or None
         tpl_info = None
         if tpl:
-            pack = s.get("tpack")
-            if pack not in ("style2", "test01"):
-                pack = ("test01" if str(tpl) in t1s_mod.TEMPLATES
-                        else "style2")
-            tpl_info = {"name": str(tpl), "pack": pack,
-                        "tparams": s.get("tparams") or {},
-                        "typed": s.get("typed"), "popup": s.get("popup")}
+            pack = packs_mod.normalize_pack(s.get("tpack"))
+            mod = packs_mod.module_for(pack)
+            if mod is None or str(tpl) not in mod.TEMPLATES:
+                # payload cu/thieu tpack: suy ra goi tu template id
+                pack, mod = None, None
+                for cand in ("stage", "style2", "crt", "paper", "zine"):
+                    m2 = packs_mod.module_for(cand)
+                    if m2 is not None and str(tpl) in m2.TEMPLATES:
+                        pack, mod = cand, m2
+                        break
+            if mod is not None and str(tpl) in mod.TEMPLATES:
+                params = dict(s.get("tparams") or {})
+                layout = None
+                if pack in packs_mod.VARIANT_PACKS:
+                    layout, layout_src = packs_mod.resolve_layout(
+                        pack, str(tpl), params, i, job_seed)
+                    params["layout"] = str(layout + 1)
+                tpl_info = {"name": str(tpl), "pack": pack,
+                            "tparams": params,
+                            "typed": s.get("typed"), "popup": s.get("popup"),
+                            "layout": layout,
+                            "layout_src": (layout_src
+                                           if layout is not None else None)}
+                log("[tpl] Cau %d -> %s:%s%s" % (
+                    i + 1, pack, tpl,
+                    (" (bien the %d, %s)" % (layout + 1, layout_src))
+                    if layout is not None else ""))
+            else:
+                log("[tpl] Bo qua template khong biet: %s" % tpl)
         segs.append({"text": s["text"],
                      "scene": int(s.get("scene") or 0),
                      "wav": wav, "dur": seg_dur,
@@ -238,34 +259,60 @@ def render_job(sentences, music_path=None, out_path=None, progress=None,
         total_dur += seg_dur
         log("[render] Cau %d/%d: giong %.2fs -> canh %.2fs (mau %s)"
             % (i + 1, len(sentences), dur, seg_dur,
-               ("style2:" + str(tpl)) if tpl else int(s.get("scene") or 0)))
+               ("%s:%s" % (tpl_info["pack"], tpl)) if tpl_info
+               else int(s.get("scene") or 0)))
     total_frames = max(1, int(round(total_dur * FPS)))
 
-    # 1b) BO QUET NHIP (spec goi test01 muc 1): doan nao >5s khong co
-    # bien co hinh anh thi canh bao vao log. Chi chay khi job co canh
-    # test01; canh thuong chi dong gop moc bat dau canh.
-    if any(sg["template"] and sg["template"].get("pack") == "test01"
-           for sg in segs):
-        _shots = []
-        for sg in segs:
-            tp = sg["template"]
-            if tp and tp.get("pack") == "test01":
-                _shots.append({
-                    "name": "test01:" + tp["name"], "dur": sg["dur"],
-                    "events": t1s_mod.events_for(
-                        tp["name"], tp.get("tparams"), sg["dur"])})
-            else:
-                _shots.append({
-                    "name": (tp or {}).get("name") or
-                            ("scene %s" % sg["scene"]),
-                    "dur": sg["dur"], "events": [(0.0, "start")]})
-        for w in t1s_mod.scan_pacing(_shots):
-            log("[nhip] CANH BAO: %s" % w)
+    # 1b) BO QUET NHIP + QUET TRUNG KHUON: chay cho MOI goi.
+    # - Quet nhip: doan >5s khong co bien co hinh anh thi canh bao.
+    #   Canh template dung events_for cua goi; canh khong template
+    #   (pixel/style2) dong gop nhip 2.5s/lan (ve lai theo chu ky canh)
+    #   de khong bao dong gia.
+    # - Quet trung: chi ap cho 4 goi co lop bien the (stage/crt/
+    #   paper/zine): mau dung >2 lan hoac 1 bien the lap >3 lan.
+    _shots = []
+    _dup_shots = []
+    for sg in segs:
+        tp = sg["template"]
+        if tp and tp.get("pack") in packs_mod.VARIANT_PACKS:
+            mod = packs_mod.module_for(tp["pack"])
+            _shots.append({
+                "name": "%s:%s" % (tp["pack"], tp["name"]),
+                "dur": sg["dur"],
+                "events": mod.events_for(tp["name"], tp.get("tparams"),
+                                          sg["dur"])})
+            _dup_shots.append({"pack": tp["pack"], "name": tp["name"],
+                               "layout": tp.get("layout")})
+        else:
+            _ev = [(0.0, "start")]
+            _tt = 2.5
+            while _tt < sg["dur"]:
+                _ev.append((_tt, "beat"))
+                _tt += 2.5
+            _shots.append({
+                "name": (("%s:%s" % (tp["pack"], tp["name"]))
+                         if tp else "scene %s" % sg["scene"]),
+                "dur": sg["dur"], "events": _ev})
+    _pw = packs_mod.scan_pacing(_shots)
+    for w in _pw:
+        log("[nhip] CANH BAO: %s" % w)
+    if not _pw:
+        log("[nhip] Quet nhip: DAT - khong doan nao >5s thieu bien co.")
+    _dw = packs_mod.scan_duplicates(_dup_shots)
+    for w in _dw:
+        log("[trung] CANH BAO TRUNG KHUON: %s" % w)
+    if _dup_shots and not _dw:
+        log("[trung] Quet trung khuon: DAT - khong mau/bien the nao "
+            "lap qua nguong.")
 
     # 2) render tung doan
     seg_files = []
     done = 0
     for i, sg in enumerate(segs):
+        if sg["template"] and sg["template"].get("pack") == "zine":
+            # goi ZINE xao o theo seed cua shot (tai lap theo job)
+            packs_mod.module_for("zine").set_shot_context(
+                job_seed + i * 1000003)
         seg_files.append(_render_segment(
             i, sg["text"], sg["scene"], sg["wav"], sg["dur"], work_dir,
             progress, total_frames, done, params=sg["params"],

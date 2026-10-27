@@ -150,7 +150,7 @@ def draw_pop_text(img, text, cy, size, colr, t, t0, path=SANS, cx=W / 2,
     img.alpha_composite(lay, (int(cx - nw / 2), int(cy - nh / 2)))
 
 
-def draw_mixed_pop(img, segments, cy, size, t, t0, path=SANS):
+def draw_mixed_pop(img, segments, cy, size, t, t0, path=SANS, cx=None):
     """1 dong gom nhieu doan mau [(text, color)...], pop chung 1 nhip."""
     sc = pop_scale(t, t0)
     if sc <= 0:
@@ -168,7 +168,18 @@ def draw_mixed_pop(img, segments, cy, size, t, t0, path=SANS):
         x += wseg
     nw, nh = max(2, int(lay.width * sc)), max(2, int(lay.height * sc))
     lay = lay.resize((nw, nh), Image.LANCZOS if path == SANS else Image.NEAREST)
-    img.alpha_composite(lay, (int(W / 2 - nw / 2), int(cy - nh / 2)))
+    img.alpha_composite(lay, (int((cx if cx is not None else W / 2)
+                                  - nw / 2), int(cy - nh / 2)))
+
+
+def _lay(p):
+    """Bien the bo cuc STAGE: 0 = A (mac dinh, giong ban goc), 1 = B."""
+    return int(p.get("_layout", 0))
+
+
+def _left_cx(text, size, path=SANS, x0=110):
+    """cx de chu canh trai tai x0 (cho bien the B)."""
+    return x0 + _tw(_DUMMY, text, _font(path, size)) / 2
 
 
 # ---------------------------------------------------------------- effects
@@ -258,8 +269,9 @@ def draw_particles(img, t, strength=1.0):
                         fill=(255, 232, 190, a))
 
 
-def stage_bg(t):
-    """Set san khau: vach go, 2 khung tranh, ke sach, tham do, den roi, hat."""
+def stage_bg(t, cone_dx=0):
+    """Set san khau: vach go, 2 khung tranh, ke sach, tham do, den roi, hat.
+    cone_dx: dich con den roi + tham (bien the B cua stage_text)."""
     img = bg_plain()
     d = ImageDraw.Draw(img, "RGBA")
     for y in range(56, 566, 46):                       # vach go ngang
@@ -272,11 +284,13 @@ def stage_bg(t):
         d.rectangle([80 + i * 26, 566, 98 + i * 26, 626], fill=c + (255,))
     d.rectangle([66, 626, 220, 634], fill=(112, 74, 42, 255))
     d.rectangle([0, 560, W, H], fill=(16, 8, 5, 110))  # san toi
-    d.polygon([(300, 720), (520, 585), (900, 585), (1120, 720)],
+    d.polygon([(300 + cone_dx, 720), (520 + cone_dx, 585),
+               (900 + cone_dx, 585), (1120 + cone_dx, 720)],
               fill=(122, 28, 24, 255))                  # tham do
     ov = Image.new("RGBA", (W, H), (0, 0, 0, 0))       # con den roi
     od = ImageDraw.Draw(ov)
-    od.polygon([(560, 0), (720, 0), (1060, 600), (220, 600)],
+    od.polygon([(560 + cone_dx, 0), (720 + cone_dx, 0),
+                (1060 + cone_dx, 600), (220 + cone_dx, 600)],
                fill=(255, 240, 210, 26))
     img.alpha_composite(ov)
     draw_particles(img, t)
@@ -305,6 +319,24 @@ def _one_card(colr, with_ai=False):
 
 def hook_cards(t, dur, p):
     img = bg_plain()
+    lay = _lay(p)
+    if lay == 1:  # bien the B: chu canh trai, quat the dich phai
+        draw_pop_text(img, p["kicker"], 94, 40, CREAM, t, 0.10,
+                      cx=_left_cx(p["kicker"], 40))
+        f = _font(SANS, 92)
+        segs = [(p["pre"], CREAM), (p["accent"], col_of(p["accent_col"], RED))]
+        total = sum(_tw(_DUMMY, s, f) for s, _ in segs)
+        size = 92
+        while total > 1160 and size > 40:
+            size -= 6
+            f = _font(SANS, size)
+            total = sum(_tw(_DUMMY, s, f) for s, _ in segs)
+        draw_mixed_pop(img, segs, 186, size, t, 0.30, cx=110 + total / 2)
+        draw_pop_text(img, p["sub"], 272, 40, CREAM, t, 0.55,
+                      cx=_left_cx(p["sub"], 40))
+        cx, cy = 780, 800
+        _hook_cards_fan(img, t, cx, cy)
+        return img
     draw_pop_text(img, p["kicker"], 94, 40, CREAM, t, 0.10)
     f = _font(SANS, 92)
     segs = [(p["pre"], CREAM), (p["accent"], col_of(p["accent_col"], RED))]
@@ -317,6 +349,11 @@ def hook_cards(t, dur, p):
     draw_mixed_pop(img, segs, 186, size, t, 0.30)
     draw_pop_text(img, p["sub"], 272, 40, CREAM, t, 0.55)
     cx, cy = W // 2, 800
+    _hook_cards_fan(img, t, cx, cy)
+    return img
+
+
+def _hook_cards_fan(img, t, cx, cy):
     for i, colr in enumerate(CARD_COLS):
         ang = math.radians(-34 + i * 17)
         start = 0.50 + i * 0.11
@@ -338,30 +375,35 @@ def hook_cards(t, dur, p):
 # =====================================================================
 def stamp_big(t, dur, p):
     img = bg_plain()
+    lay = _lay(p)
     size, lines = fit_lines(p["big"], 1120, 108, 44, SANS, max_lines=2)
     cy = 268 if len(lines) > 1 else 300
     for j, ln in enumerate(lines):
+        cx = _left_cx(ln, size) if lay == 1 else W / 2
         draw_pop_text(img, ln, cy + j * int(size * 1.18), size,
-                      col_of(p["big_col"], CREAM), t, 0.12 + j * 0.1)
+                      col_of(p["big_col"], CREAM), t, 0.12 + j * 0.1, cx=cx)
     stamp_at = float(p["_stamp_at"])
     if t >= stamp_at:
         sp = clamp((t - stamp_at) / 0.10)
         sc = 2.4 - 1.4 * ease_in_quad(sp)
         f = _font(PS, 54)
         tw = _tw(_DUMMY, p["stamp"], f)
-        lay = Image.new("RGBA", (int(tw + 68), 128), (0, 0, 0, 0))
-        ld = ImageDraw.Draw(lay)
+        lay_img = Image.new("RGBA", (int(tw + 68), 128), (0, 0, 0, 0))
+        ld = ImageDraw.Draw(lay_img)
         ld.rectangle([4, 4, tw + 62, 122], outline=RED + (255,), width=8)
         ld.text((34, 36), p["stamp"], font=f, fill=RED + (255,))
-        lay = lay.resize((max(2, int(lay.width * sc)),
-                          max(2, int(lay.height * sc))), Image.NEAREST)
-        lay = lay.rotate(-8, expand=True, resample=Image.NEAREST)
+        lay_img = lay_img.resize((max(2, int(lay_img.width * sc)),
+                                  max(2, int(lay_img.height * sc))),
+                                 Image.NEAREST)
+        lay_img = lay_img.rotate(-8, expand=True, resample=Image.NEAREST)
         stamp_cy = cy + len(lines) * int(size * 1.18) + 10
-        img.alpha_composite(lay, (int(880 - lay.width / 2),
-                                  int(stamp_cy - lay.height / 2)))
+        stamp_cx = 330 if lay == 1 else 880
+        img.alpha_composite(lay_img, (int(stamp_cx - lay_img.width / 2),
+                                      int(stamp_cy - lay_img.height / 2)))
     if p["sub"]:
+        cx = _left_cx(p["sub"], 38, VT) if lay == 1 else W / 2
         draw_pop_text(img, p["sub"], 540, 38, TEAL, t, stamp_at + 0.28,
-                      path=VT)
+                      path=VT, cx=cx)
     return fx_shake(img, t, stamp_at, mag=7, dur=0.09)
 
 
@@ -370,10 +412,17 @@ def stamp_big(t, dur, p):
 # =====================================================================
 def type_window(t, dur, p):
     img = bg_plain()
+    lay = _lay(p)
     lines = [x for x in p["lines"].split("|")]
     cols = [col_of(c) for c in p["colors"].split(",")] or [CREAM]
     has_head = bool(p["head_small"] or p["head_big"])
-    if has_head:
+    if has_head and lay == 1:  # bien the B: cua so trai, tieu de phai
+        wx0, wy0, wx1, wy1 = 70, 90, 820, 560
+        lx = 110
+        draw_pop_text(img, p["head_small"], 118, 44, CREAM, t, 0.10, cx=1052)
+        draw_pop_text(img, p["head_big"], 200, 72,
+                      col_of(p["head_col"], TEAL), t, 0.30, cx=1052)
+    elif has_head:
         draw_pop_text(img, p["head_small"], 118, 44, CREAM, t, 0.10, cx=228)
         draw_pop_text(img, p["head_big"], 200, 72,
                       col_of(p["head_col"], TEAL), t, 0.30, cx=228)
@@ -417,13 +466,25 @@ def type_window(t, dur, p):
 # 4. SAN KHAU CHU - set phong + den roi + chu lon (mock-1 v2, KHONG linh vat)
 # =====================================================================
 def stage_text(t, dur, p):
-    img = stage_bg(t)
-    draw_pop_text(img, p["small"], 196, 46, CREAM, t, 0.15)
-    draw_pop_text(img, p["big1"], 292, 104, CREAM, t, 0.45)
-    draw_pop_text(img, p["big2"], 408, 104, col_of(p["big2_col"], RED),
-                  t, 0.80)
-    if p["sub"]:
-        draw_pop_text(img, p["sub"], 566, 34, TEAL, t, 1.15, path=VT)
+    lay = _lay(p)
+    img = stage_bg(t, cone_dx=-300 if lay == 1 else 0)
+    if lay == 1:  # bien the B: chu canh trai trong con den dich trai
+        draw_pop_text(img, p["small"], 196, 46, CREAM, t, 0.15,
+                      cx=_left_cx(p["small"], 46, x0=130))
+        draw_pop_text(img, p["big1"], 292, 104, CREAM, t, 0.45,
+                      cx=_left_cx(p["big1"], 104, x0=130))
+        draw_pop_text(img, p["big2"], 408, 104, col_of(p["big2_col"], RED),
+                      t, 0.80, cx=_left_cx(p["big2"], 104, x0=130))
+        if p["sub"]:
+            draw_pop_text(img, p["sub"], 566, 34, TEAL, t, 1.15, path=VT,
+                          cx=_left_cx(p["sub"], 34, VT, x0=130))
+    else:
+        draw_pop_text(img, p["small"], 196, 46, CREAM, t, 0.15)
+        draw_pop_text(img, p["big1"], 292, 104, CREAM, t, 0.45)
+        draw_pop_text(img, p["big2"], 408, 104, col_of(p["big2_col"], RED),
+                      t, 0.80)
+        if p["sub"]:
+            draw_pop_text(img, p["sub"], 566, 34, TEAL, t, 1.15, path=VT)
     glitch_at = float(p["_glitch_at"])
     if glitch_at <= t <= glitch_at + 0.25:
         img = fx_rgb_split(img, amp=6)
@@ -476,19 +537,24 @@ def _panel_right(img, x0, y0, x1, y1, t):
 
 def ab_compare(t, dur, p):
     img = bg_plain()
+    lay = _lay(p)
     draw_pop_text(img, p["head"], 84, 44, CREAM, t, 0.10)
+    # bien the B: hoan doi vi tri 2 panel (day du sang trai, xam sang phai)
+    left_fn, right_fn = (_panel_left, _panel_right) if lay == 0 \
+        else (_panel_right, _panel_left)
     if t >= 0.35:
-        _panel_left(img, 70, 150, 600, 560, t)
+        left_fn(img, 70, 150, 600, 560, t)
     if t >= 0.75:
-        _panel_right(img, 680, 150, 1210, 560, t)
+        right_fn(img, 680, 150, 1210, 560, t)
     if t >= 1.0:                                    # huy hieu VS
         d = ImageDraw.Draw(img)
         d.ellipse([592, 307, 688, 403], fill=(16, 10, 8),
                   outline=CREAM, width=3)
         f = _font(PS, 26)
         d.text((640 - _tw(d, "VS", f) / 2, 342), "VS", font=f, fill=YELLOW)
-    draw_pop_text(img, p["label_a"], 606, 36, GREY_TXT, t, 1.10, cx=335)
-    draw_pop_text(img, p["label_b"], 606, 36, TEAL, t, 1.25, cx=945)
+    a_cx, b_cx = (335, 945) if lay == 0 else (945, 335)
+    draw_pop_text(img, p["label_a"], 606, 36, GREY_TXT, t, 1.10, cx=a_cx)
+    draw_pop_text(img, p["label_b"], 606, 36, TEAL, t, 1.25, cx=b_cx)
     return img
 
 
@@ -532,7 +598,12 @@ def _glyph(d, kind, x, y, s, colr):
 
 def item_rows(t, dur, p):
     img = bg_plain()
-    draw_pop_text(img, p["title"], 92, 50, CREAM, t, 0.10)
+    lay = _lay(p)
+    if lay == 1:
+        draw_pop_text(img, p["title"], 92, 50, CREAM, t, 0.10,
+                      cx=_left_cx(p["title"], 50, x0=90))
+    else:
+        draw_pop_text(img, p["title"], 92, 50, CREAM, t, 0.10)
     items = [x.strip() for x in p["items"].split(",") if x.strip()]
     starts = p["_starts"]
     d = ImageDraw.Draw(img)
@@ -541,16 +612,27 @@ def item_rows(t, dur, p):
             continue
         sc = pop_scale(t, starts[i], 0.2)
         y = 168 + i * 86
-        lay = Image.new("RGBA", (1100, 76), (0, 0, 0, 0))
-        ld = ImageDraw.Draw(lay)
-        ld.rectangle([0, 6, 64, 70], fill=(28, 17, 11, 255),
-                     outline=TEAL, width=3)
-        _glyph(ld, _GLYPHS[i % len(_GLYPHS)], 4, 10, 56, TEAL)
-        ld.text((84, 22), "%02d" % (i + 1), font=_font(PS, 20), fill=TEAL)
-        ld.text((170, 14), it, font=_font(SANS, 42), fill=CREAM)
+        lay_img = Image.new("RGBA", (1100, 76), (0, 0, 0, 0))
+        ld = ImageDraw.Draw(lay_img)
+        if lay == 1:  # bien the B: bieu tuong sang phai, chu canh phai
+            ld.rectangle([1036, 6, 1100, 70], fill=(28, 17, 11, 255),
+                         outline=TEAL, width=3)
+            _glyph(ld, _GLYPHS[i % len(_GLYPHS)], 1040, 10, 56, TEAL)
+            num = "%02d" % (i + 1)
+            ld.text((1016 - _tw(ld, num, _font(PS, 20)), 22), num,
+                    font=_font(PS, 20), fill=TEAL)
+            tw_it = _tw(ld, it, _font(SANS, 42))
+            ld.text((950 - tw_it, 14), it, font=_font(SANS, 42), fill=CREAM)
+        else:
+            ld.rectangle([0, 6, 64, 70], fill=(28, 17, 11, 255),
+                         outline=TEAL, width=3)
+            _glyph(ld, _GLYPHS[i % len(_GLYPHS)], 4, 10, 56, TEAL)
+            ld.text((84, 22), "%02d" % (i + 1), font=_font(PS, 20),
+                    fill=TEAL)
+            ld.text((170, 14), it, font=_font(SANS, 42), fill=CREAM)
         nw, nh = max(2, int(1100 * sc)), max(2, int(76 * sc))
-        lay = lay.resize((nw, nh), Image.LANCZOS)
-        img.alpha_composite(lay, (90, int(y - nh / 2 + 38)))
+        lay_img = lay_img.resize((nw, nh), Image.LANCZOS)
+        img.alpha_composite(lay_img, (90, int(y - nh / 2 + 38)))
     return img
 
 
@@ -559,15 +641,23 @@ def item_rows(t, dur, p):
 # =====================================================================
 def big_counter(t, dur, p):
     img = bg_plain()
+    lay = _lay(p)
     target = float(p["_target"])
     count_dur = float(p["_count_dur"])
     pr = ease_out_cubic((t - 0.20) / max(0.05, count_dur))
     val = int(target * pr)
     txt = "{:,}".format(val).replace(",", ".")
-    draw_text_c(img, txt, 150, 108, CREAM, path=PS)
+    if lay == 1:  # bien the B: so canh trai, song am ha xuong duoi
+        draw_text_c(img, txt, 170, 118, CREAM, path=PS,
+                    cx=_left_cx(txt, 118, PS, x0=110))
+        wave_y = 500
+    else:
+        draw_text_c(img, txt, 150, 108, CREAM, path=PS)
+        wave_y = 400
     if t >= 0.20 + count_dur * 0.55:
+        cx = _left_cx(p["label"], 58, x0=110) if lay == 1 else W / 2
         draw_pop_text(img, p["label"], 292, 58, col_of(p["label_col"], RED),
-                      t, 0.20 + count_dur * 0.55)
+                      t, 0.20 + count_dur * 0.55, cx=cx)
     if t >= 0.20:                                   # song am nhay
         d = ImageDraw.Draw(img)
         rng = random.Random(7)
@@ -576,10 +666,12 @@ def big_counter(t, dur, p):
             wob = 0.72 + 0.28 * math.sin(t * 3.1 + i * 0.7)
             hb = int(base[i] * wob)
             x = 190 + i * 19
-            d.rectangle([x, 400 - hb // 2, x + 9, 400 + hb // 2], fill=TEAL)
+            d.rectangle([x, wave_y - hb // 2, x + 9, wave_y + hb // 2],
+                        fill=TEAL)
     if p["sub"]:
+        cx = _left_cx(p["sub"], 36, VT, x0=110) if lay == 1 else W / 2
         draw_pop_text(img, p["sub"], 560, 36, YELLOW, t,
-                      0.20 + count_dur + 0.3, path=VT)
+                      0.20 + count_dur + 0.3, path=VT, cx=cx)
     return img
 
 
@@ -588,14 +680,19 @@ def big_counter(t, dur, p):
 # =====================================================================
 def cell_grid(t, dur, p):
     img = bg_plain()
-    draw_pop_text(img, p["title"], 84, 52, CREAM, t, 0.10)
+    lay = _lay(p)
     cols = int(float(p["_cols"]))
     rows = int(float(p["_rows"]))
     total = int(float(p["_total"]))
     cell, gap = 92, 14
     gw = cols * cell + (cols - 1) * gap
     gh = rows * cell + (rows - 1) * gap
-    x0 = (W - gw) // 2
+    x0 = (W - gw) // 2 if lay == 0 else 90
+    if lay == 1:  # bien the B: luoi neo trai, tieu de canh trai
+        draw_pop_text(img, p["title"], 84, 52, CREAM, t, 0.10,
+                      cx=_left_cx(p["title"], 52, x0=90))
+    else:
+        draw_pop_text(img, p["title"], 84, 52, CREAM, t, 0.10)
     y0 = (H - gh) // 2 + 26
     step = float(p["_step"])
     d = ImageDraw.Draw(img)
@@ -618,8 +715,9 @@ def cell_grid(t, dur, p):
             d.text((cx0 + cell / 2 - _tw(d, n, f) / 2, cy0 + cell / 2 - 12),
                    n, font=f, fill=CREAM)
     if p["caption"]:
+        cx = _left_cx(p["caption"], 34, VT, x0=90) if lay == 1 else W / 2
         draw_pop_text(img, p["caption"], y0 + gh + 44, 34, YELLOW, t,
-                      0.40 + total * step + 0.15, path=VT)
+                      0.40 + total * step + 0.15, path=VT, cx=cx)
     return img
 
 
@@ -628,37 +726,41 @@ def cell_grid(t, dur, p):
 # =====================================================================
 def progress_bar(t, dur, p):
     img = bg_plain()
+    lay = _lay(p)
     pct = float(p["_pct"])
     fill_dur = float(p["_fill_dur"])
     t_lines = float(p["_t_lines"])
     variant = p["variant"].strip().lower()
     pr = ease_out_cubic((t - 0.25) / max(0.05, fill_dur))
     cur = pct * pr
+    # bien the B (layout): thanh ha xuong duoi, 3 dong chu len tren
+    yoff = 300 if lay == 1 else 0
     d = ImageDraw.Draw(img)
     if variant == "hp":
         f = _font(PS, 44)
-        d.text((90, 84), "HP", font=f, fill=TEAL)
+        d.text((90, 84 + yoff), "HP", font=f, fill=TEAL)
         seg_n = 12
         seg_w = (1100 - (seg_n - 1) * 8) / seg_n
         lit = int(round(seg_n * cur / 100.0))
         for i in range(seg_n):
             x = 90 + i * (seg_w + 8)
             colr = TEAL if i < lit else (60, 44, 34)
-            d.rectangle([x, 168, x + seg_w, 214], fill=colr,
+            d.rectangle([x, 168 + yoff, x + seg_w, 214 + yoff], fill=colr,
                         outline=CREAM, width=2)
         f2 = _font(PS, 30)
-        d.text((90, 240), "%d%%" % int(round(cur)), font=f2, fill=YELLOW)
-        ly = 330
+        d.text((90, 240 + yoff), "%d%%" % int(round(cur)), font=f2,
+               fill=YELLOW)
+        ly = 330 if lay == 0 else 110
     else:
         f = _font(PS, 58)
-        d.text((90, 74), "%d%%" % int(round(cur)), font=f, fill=TEAL)
-        d.rounded_rectangle([90, 168, 1190, 224], radius=26,
+        d.text((90, 74 + yoff), "%d%%" % int(round(cur)), font=f, fill=TEAL)
+        d.rounded_rectangle([90, 168 + yoff, 1190, 224 + yoff], radius=26,
                             outline=CREAM, width=4)
         if cur > 0.5:
             fw = int((1190 - 98) * cur / 100.0)
-            d.rounded_rectangle([98, 176, 98 + fw, 216], radius=18,
-                                fill=TEAL)
-        ly = 300
+            d.rounded_rectangle([98, 176 + yoff, 98 + fw, 216 + yoff],
+                                radius=18, fill=TEAL)
+        ly = 300 if lay == 0 else 110
     # 3 dong text canh trai (le trai nhu mock-5), pop lan luot
     d = ImageDraw.Draw(img)
     entries = [(p["line1"], 50, CREAM, t_lines),
@@ -686,17 +788,34 @@ def progress_bar(t, dur, p):
 # =====================================================================
 def follow_end(t, dur, p):
     img = bg_plain()
-    draw_pop_text(img, p["main"], 200, 56, CREAM, t, 0.15)
-    if p["accent"] and p["accent"] in p["sub"]:
-        a, b = p["sub"].split(p["accent"], 1)
-        segs = [(a, CREAM), (p["accent"], col_of(p["accent_col"], RED)),
-                (b, CREAM)]
-        segs = [s for s in segs if s[0]]
-        draw_mixed_pop(img, segs, 292, 60, t, 0.60)
+    lay = _lay(p)
+    if lay == 1:  # bien the B: chu canh trai, nut o phia trai
+        draw_pop_text(img, p["main"], 200, 56, CREAM, t, 0.15,
+                      cx=_left_cx(p["main"], 56, x0=110))
+        if p["accent"] and p["accent"] in p["sub"]:
+            a, b = p["sub"].split(p["accent"], 1)
+            segs = [(a, CREAM), (p["accent"], col_of(p["accent_col"], RED)),
+                    (b, CREAM)]
+            segs = [s for s in segs if s[0]]
+            f = _font(SANS, 60)
+            tot = sum(_tw(_DUMMY, s, f) for s, _ in segs)
+            draw_mixed_pop(img, segs, 292, 60, t, 0.60, cx=110 + tot / 2)
+        else:
+            draw_pop_text(img, p["sub"], 292, 60, CREAM, t, 0.60,
+                          cx=_left_cx(p["sub"], 60, x0=110))
+        bx0, by0, bx1, by1 = 110, 500, 530, 580
     else:
-        draw_pop_text(img, p["sub"], 292, 60, CREAM, t, 0.60)
+        draw_pop_text(img, p["main"], 200, 56, CREAM, t, 0.15)
+        if p["accent"] and p["accent"] in p["sub"]:
+            a, b = p["sub"].split(p["accent"], 1)
+            segs = [(a, CREAM), (p["accent"], col_of(p["accent_col"], RED)),
+                    (b, CREAM)]
+            segs = [s for s in segs if s[0]]
+            draw_mixed_pop(img, segs, 292, 60, t, 0.60)
+        else:
+            draw_pop_text(img, p["sub"], 292, 60, CREAM, t, 0.60)
+        bx0, by0, bx1, by1 = 430, 500, 850, 580
     click_at = float(p["_click_at"])
-    bx0, by0, bx1, by1 = 430, 500, 850, 580
     clicked = t >= click_at
     if t >= 1.0:
         sc = pop_scale(t, 1.0, 0.2)
@@ -714,20 +833,24 @@ def follow_end(t, dur, p):
                 txt, font=f, fill=(255, 255, 255, 255))
         nw, nh = max(2, int(lay.width * sc)), max(2, int(lay.height * sc))
         lay = lay.resize((nw, nh), Image.LANCZOS)
-        img.alpha_composite(lay, (int(640 - nw / 2), int(540 - nh / 2)))
+        bcx = (bx0 + bx1) // 2
+        img.alpha_composite(lay, (int(bcx - nw / 2), int(540 - nh / 2)))
         if clicked and t < click_at + 0.30:         # vong click lan ra
             rr = (t - click_at) / 0.30 * 60
             d = ImageDraw.Draw(img, "RGBA")
-            d.ellipse([790 - rr, 540 - rr, 790 + rr, 540 + rr],
+            d.ellipse([bcx + 150 - rr, 540 - rr, bcx + 150 + rr, 540 + rr],
                       outline=(255, 255, 255, int(160 * (1 - rr / 60))),
                       width=4)
     if p["side_text"]:
-        draw_pop_text(img, p["side_text"], 540, 38, CREAM, t, 1.15, cx=1042)
+        side_cx = 722 if lay == 1 else 1042
+        draw_pop_text(img, p["side_text"], 540, 38, CREAM, t, 1.15,
+                      cx=side_cx)
     # con tro: bay vao tu goc duoi phai, dung lai o nut
     move = clamp((t - (click_at - 0.45)) / 0.45)
     if move > 0:
         me = ease_out_cubic(move)
-        cxp = 1150 + (800 - 1150) * me
+        cur_x = (bx0 + bx1) // 2 + 160
+        cxp = 1150 + (cur_x - 1150) * me
         cyp = 700 + (560 - 700) * me
         d = ImageDraw.Draw(img)
         d.polygon([(cxp, cyp), (cxp, cyp + 44), (cxp + 16, cyp + 32),
@@ -752,10 +875,12 @@ def combo_chain(t, dur, p):
         at = 0.35 + (n - start_x) * step
         if t >= at:
             cur, last_at = n, at
+    lay = _lay(p)
     big = "x%d" % cur
     sc = pop_scale(t, last_at, 0.18) if t >= 0.35 else 0.0
     if sc > 0:
-        draw_pop_text(img, big, 218, 104, RED, t, last_at, path=PS)
+        cx = 950 if lay == 1 else W / 2
+        draw_pop_text(img, big, 218, 104, RED, t, last_at, path=PS, cx=cx)
     seg_n = 10
     lit = int(round(seg_n * (cur - start_x + 1) / float(max_x - start_x + 1)))
     bw = (920 - (seg_n - 1) * 8) / seg_n
@@ -774,8 +899,10 @@ def combo_chain(t, dur, p):
         if t < at:
             continue
         # bac thang trai deu trong khung 240..940 (keo ca duong ke 120px
-        # van nam gon trong man hinh ke ca bac cao nhat)
-        x = 240 + (i * 700 // max(1, n_steps - 1) if n_steps > 1 else 0)
+        # van nam gon trong man hinh ke ca bac cao nhat);
+        # bien the B: bac thang dao chieu, leo tu phai sang trai
+        off = (i * 700 // max(1, n_steps - 1) if n_steps > 1 else 0)
+        x = (920 - off) if lay == 1 else 240 + off
         y = base_y - i * 34
         c = TEAL if n < max_x else RED
         d.text((x, y), "x%d" % n, font=_font(PS, 26), fill=c)
