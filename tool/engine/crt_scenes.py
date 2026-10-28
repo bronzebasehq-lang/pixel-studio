@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CRT SCENES - dang ky 10 mau canh goi "crt" (terminal co).
+"""CRT SCENES - dang ky 11 mau canh goi "crt" (terminal co).
 
 Cung pattern voi test01_scenes/style2_scenes: moi template co SPEC tham
 so, UI tu sinh form; params luu theo cau, id canh trong UI "ct:<key>",
@@ -118,6 +118,8 @@ def _spec(key, label, typ, default):
 
 _LAYOUT = _spec("layout", "Biến thể bố cục (trống = tự xoay, 1/2)",
                 "text", "")
+_FX = _spec("fx", "Hiệu ứng (trống / static = nhiễu mất sóng đầu+cuối shot)",
+            "text", "")
 
 TEMPLATES = {
     "decode_hook": {
@@ -131,6 +133,7 @@ TEMPLATES = {
                   "KHÔNG PHẢI DO THUẬT TOÁN."),
             _spec("sub", "Dòng phụ (không dấu, trống = không)", "text",
                   "dang giai ma nguyen nhan ..."),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("decode_hook", ct.decode_hook),
@@ -147,6 +150,7 @@ TEMPLATES = {
             _spec("statuses", "Trạng thái từng dòng (OK/RUN/X, cách ,)", "text",
                   "OK,OK,RUN"),
             _spec("pct", "Phần trăm cuối thanh", "number", "72"),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("log_window", ct.log_window),
@@ -163,6 +167,7 @@ TEMPLATES = {
             _spec("big2_col", "Màu dòng 2 (amber/red/green)", "text", "amber"),
             _spec("sub", "Dòng phụ gõ chữ dưới", "text",
                   "> cung mot AI - khac nguoi dao dien"),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("glow_headline", ct.glow_headline),
@@ -179,6 +184,7 @@ TEMPLATES = {
             _spec("label_b", "Nhãn phải", "text", "CÓ NHỊP GIỮ CHÂN"),
             _spec("lines_b", "Dòng nội dung phải (ngăn |)", "text",
                   "hook: 3 giay|bien co: moi 3 giay|moc treo: mo som|ket: phan 2"),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("ab_windows", ct.ab_windows),
@@ -195,6 +201,7 @@ TEMPLATES = {
             _spec("statuses", "Trạng thái từng dòng (cách ,)", "text",
                   "OK,OK,RUN"),
             _spec("pct", "(không dùng)", "number", "72"),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("log_list", ct.log_list),
@@ -208,6 +215,7 @@ TEMPLATES = {
             _spec("label", "Nhãn dưới số", "text", "HIỆU ỨNG ÂM THANH"),
             _spec("label_col", "Màu nhãn (amber/red/green)", "text", "amber"),
             _spec("sub", "Dòng phụ (trống = không)", "text", ""),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("odometer", ct.odometer),
@@ -222,6 +230,7 @@ TEMPLATES = {
             _spec("cols", "Số cột", "number", "3"),
             _spec("caption", "Chú thích dưới (trống = không)", "text",
                   "6 tien trinh - tat ca deu phuc vu nhip giu chan"),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("process_grid", ct.process_grid),
@@ -241,6 +250,7 @@ TEMPLATES = {
                   "amber"),
             _spec("answer", "Dòng trả lời (gõ chữ)", "text",
                   "LA BAN. Y TUONG CUA BAN."),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("progress_blocks", ct.progress_blocks),
@@ -256,6 +266,7 @@ TEMPLATES = {
             _spec("max_x", "Tối đa (×)", "number", "4"),
             _spec("specs", "Thông số (nhãn::giá trị, ngăn |)", "text",
                   "toc do cat canh::+240%|bien co moi::2.5 giay|do tre chuyen canh::0 khung hinh"),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("overclock", ct.overclock),
@@ -271,9 +282,26 @@ TEMPLATES = {
                   "follow de xem phan 2"),
             _spec("button", "Chữ nút trước khi bấm", "text", "THEO DÕI [ENTER]"),
             _spec("done_text", "Chữ sau khi bấm", "text", "ĐÃ THEO DÕI"),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("follow_end", ct.follow_end),
+    },
+    "alert_warn": {
+        "name": "alert_warn — Cảnh báo đỏ",
+        "desc": "Khung viền đỏ nhấp nháy + sọc hazard + headline cảnh báo + dòng [!] (mẫu mới)",
+        "tags": "alert warn canh bao do nhap nhay nguy hiem loi bao dong alarm",
+        "params": [
+            _spec("head", "Headline cảnh báo (có dấu)", "text",
+                  "CẢNH BÁO: SẮP HẾT THỜI GIAN"),
+            _spec("sub", "Dòng phụ gõ chữ (không dấu)", "text",
+                  "he thong phat hien rui ro ..."),
+            _spec("lines", "Dòng cảnh báo (ngăn |)", "text",
+                  "nhip video qua cham|hook qua yeu|khong co moc treo"),
+            _FX,
+            _LAYOUT,
+        ],
+        "build": _builder("alert_warn", ct.alert_warn),
     },
 }
 
@@ -287,12 +315,15 @@ def template_catalog():
 
 
 def draw_template(name, params, tm, dur, text, typed=None, popup=None):
-    """Ve 1 frame CRT tai tm. Dau shot co giat cat ngang 0.14s."""
+    """Ve 1 frame CRT tai tm. Dau shot co giat cat ngang 0.14s.
+    fx=static (tuy chon): them nhieu mat song o dau + cuoi shot."""
     p = _full_params(name, params, dur)
     fn = TEMPLATES[name]["build"](p, {"text": text})
     img = fn(tm, dur)
     if tm < 0.14:
         img = ct.fx_glitch_cut(img, tm, 0.0, 0.14)
+    if str(p.get("fx", "") or "").strip().lower() == "static":
+        img = ct.fx_static(img, tm, dur)
     return img
 
 
@@ -331,5 +362,8 @@ def events_for(name, params, dur):
         ev.append((0.4 + (mx - sx) * step + 0.2, "alarm"))
     elif name == "follow_end":
         ev = [(0.15, "beep"), (0.9, "type"), (p["_click_at"], "enter")]
+    elif name == "alert_warn":
+        ev = [(0.1, "alarm"), (0.7, "type"), (1.1, "alarm"),
+              (1.5, "beep"), (1.9, "beep"), (2.3, "alarm")]
     ev = [(round(o, 3), k) for (o, k) in ev if o <= dur]
     return sorted(ev)

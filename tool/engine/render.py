@@ -226,7 +226,8 @@ def render_job(sentences, music_path=None, out_path=None, progress=None,
             if mod is None or str(tpl) not in mod.TEMPLATES:
                 # payload cu/thieu tpack: suy ra goi tu template id
                 pack, mod = None, None
-                for cand in ("stage", "style2", "crt", "paper", "zine"):
+                for cand in ("stage", "style2", "crt", "paper", "zine",
+                             "clay", "flat", "show"):
                     m2 = packs_mod.module_for(cand)
                     if m2 is not None and str(tpl) in m2.TEMPLATES:
                         pack, mod = cand, m2

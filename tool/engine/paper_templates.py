@@ -262,6 +262,67 @@ def page_in(img, t, dur_in=0.32):
     return img
 
 
+def page_flip(img, t, dur_in=0.55):
+    """Lat trang CONG (fx=flip): tam giay cu uon cong khi lat sang
+    phai - mep lat la duong cong sin, bong do theo duong cong do,
+    mat giay sang dan ve phia mep. Khac page_in (truot thang)."""
+    if t >= dur_in:
+        return img
+    pr = ease_out_cubic(t / dur_in)
+    edge = int(W * pr)
+    if edge >= W:
+        return img
+    d = ImageDraw.Draw(img, "RGBA")
+    # than trang: tu duong cong mep toi het phai; ve theo dai doc de
+    # tao sac do sang dan (gan mep sang hon = giay dang uon ve phia sang)
+    step = 16
+    x = edge
+    while x < W:
+        bulge = 0
+        frac = (x - edge) / max(1, W - edge)
+        shade = int(14 * (1 - frac))
+        col = (PAPER_DARK[0] + shade, PAPER_DARK[1] + shade,
+               PAPER_DARK[2] + shade)
+        d.rectangle([x, 0, min(W, x + step), H], fill=col + (255,))
+        x += step
+    # duong ke ngang cua trang cu (chi phan con thay duoc)
+    for y in range(64, H, 46):
+        d.line([(edge + 34, y), (W, y)], fill=LINE_BLUE + (110,), width=2)
+    # bong cong do o mep lat: dai doc lech theo sin(y)
+    for i in range(30):
+        a = int(85 * (1 - i / 30.0))
+        off = i
+        pts = [(edge + off + int(26 * math.sin((yy / float(H)) * math.pi)),
+                yy) for yy in range(0, H, 24)]
+        d.line(pts, fill=(90, 78, 55, a), width=2)
+    # duong mep lat sac net
+    pts = [(edge + int(26 * math.sin((yy / float(H)) * math.pi)), yy)
+           for yy in range(0, H, 12)]
+    d.line(pts, fill=(120, 104, 70, 200), width=3)
+    return img
+
+
+def wobbly_ellipse(img, box, t, t0, col=RED, width=4, seed=0, dur=0.38):
+    """Ve vong ellipse tay run theo tien trinh (t - t0)/dur: vong ve
+    dan quanh chu vi, ban kinh nhieu nhe kieu but bi that."""
+    prog = clamp((t - t0) / dur)
+    if prog <= 0:
+        return
+    x0, y0, x1, y1 = box
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    rx, ry = (x1 - x0) / 2, (y1 - y0) / 2
+    rng = random.Random(seed)
+    n = 72
+    pts = []
+    for i in range(n + 1):
+        a = i / float(n) * math.tau
+        wob = 1.0 + 0.03 * math.sin(a * 3 + seed) + rng.uniform(-0.012, 0.012)
+        pts.append((cx + rx * wob * math.cos(a), cy + ry * wob * math.sin(a)))
+    upto = max(2, int(len(pts) * prog))
+    d = ImageDraw.Draw(img)
+    d.line(pts[:upto], fill=col + (255,), width=width, joint="curve")
+
+
 def _lay(p):
     return int(p.get("_layout", 0))
 
@@ -312,6 +373,14 @@ def note_hook(t, dur, p):
                fill=INK + (255,))
         d.text((x0 + tw_a + tw_acc, hy - size / 2), b, font=f,
                fill=INK + (255,))
+        if "circle" in str(p.get("fx", "") or "").lower():
+            # fx=circle: but do khoanh TRON 2 VONG quanh tu khoa chinh
+            cbox = (x0 + tw_a - 22, hy - size * 0.72,
+                    x0 + tw_a + tw_acc + 22, hy + size * 0.82)
+            wobbly_ellipse(img, cbox, t, 1.45, RED, 4, seed=5)
+            cbox2 = (cbox[0] - 10, cbox[1] - 8, cbox[2] + 10,
+                     cbox[3] + 8)
+            wobbly_ellipse(img, cbox2, t, 1.63, RED, 3, seed=11)
     else:
         ink_text_c(img, head, hy, size, INK, cx=W / 2 if lay == 0 else 640)
     hand_arrow(img, nx + note_w - 40, ny + note_h + 26, 900, hy - 90,

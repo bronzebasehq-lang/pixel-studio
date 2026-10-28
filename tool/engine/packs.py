@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""PACKS - dang ky trung tam 5 GOI PHONG CACH cua Pixel Studio (V2.4).
+"""PACKS - dang ky trung tam 8 GOI PHONG CACH cua Pixel Studio.
 
-5 goi:
-  pixel : PIXEL 16-BIT - canh code scenes.py (id 1..8) + template style2
+8 goi:
+  pixel : PIXEL 16-BIT - canh code scenes.py (id 1..9) + template style2
           (id "s2:<key>"). Day la goi goc: job cu thuoc goi nay giu
           nguyen hanh vi 100% (khong tiem bien the, khong doi dispatch).
   stage : STAGE (ten cu "test01", kinetic giu chan) - id "t1:<key>",
@@ -11,6 +11,9 @@
   crt   : CRT - terminal xanh la, id "ct:<key>", module crt_scenes.
   paper : PAPER - giay & muc, id "pp:<key>", module paper_scenes.
   zine  : ZINE - cat dan tap chi, id "zn:<key>", module zine_scenes.
+  clay  : DAT SET - clay stop-motion, id "cl:<key>", module clay_scenes.
+  flat  : FLAT - do hoa phang, id "fl:<key>", module flat_scenes.
+  show  : SHOW - gameshow TV, id "sh:<key>", module show_scenes.
 
 Chiu trach nhiem:
   - module_for(pack): module scenes cua goi template (draw_template /
@@ -29,8 +32,11 @@ Chiu trach nhiem:
 import hashlib
 import unicodedata
 
+import clay_scenes
 import crt_scenes
+import flat_scenes
 import paper_scenes
+import show_scenes
 import style2_scenes as s2s_mod
 import test01_scenes as stage_mod
 import zine_scenes
@@ -57,6 +63,18 @@ PACKS = [
      "desc": "Cắt dán tạp chí: mỗi từ 1 ô giấy cắt, font/màu/góc xáo "
              "theo từng video, tem nhãn giá, poster phần 2.",
      "color": "#ffc800"},
+    {"id": "clay", "label": "ĐẤT SÉT", "prefix": "cl:",
+     "desc": "Clay stop-motion: khối nặn bo tròn màu kẹo trên nền kem, "
+             "nảy squash, con sâu tiến trình, nút đất sét.",
+     "color": "#ff6b57"},
+    {"id": "flat", "label": "FLAT", "prefix": "fl:",
+     "desc": "Đồ họa phẳng hiện đại: nền trơn luân phiên, khối hình học "
+             "sắc nét, biểu đồ phẳng + số khổng lồ, nhiều khoảng thở.",
+     "color": "#ffb703"},
+    {"id": "show", "label": "SHOW", "prefix": "sh:",
+     "desc": "Gameshow truyền hình: biển marquee bóng đèn đuổi nhau, "
+             "vòng quay may mắn, bảng điểm LED, bục 2-1-3, pháo giấy.",
+     "color": "#ff5d8f"},
 ]
 
 ALIASES = {"test01": "stage"}
@@ -66,12 +84,16 @@ TEMPLATE_MODULES = {
     "crt": crt_scenes,
     "paper": paper_scenes,
     "zine": zine_scenes,
+    "clay": clay_scenes,
+    "flat": flat_scenes,
+    "show": show_scenes,
 }
 # goi co lop bien the bo cuc (pixel co y KHONG co - giu nguyen job cu)
-VARIANT_PACKS = ("stage", "crt", "paper", "zine")
+VARIANT_PACKS = ("stage", "crt", "paper", "zine", "clay", "flat", "show")
 
 _PREFIX_TO_PACK = {"s2:": "style2", "t1:": "stage", "ct:": "crt",
-                   "pp:": "paper", "zn:": "zine"}
+                   "pp:": "paper", "zn:": "zine", "cl:": "clay",
+                   "fl:": "flat", "sh:": "show"}
 
 
 def normalize_pack(pack):

@@ -127,6 +127,8 @@ def _spec(key, label, typ, default):
 
 _LAYOUT = _spec("layout", "Biến thể bố cục (trống = tự xoay, 1/2)",
                 "text", "")
+_FX = _spec("fx", "Hiệu ứng (trống / flip = lật trang đầu shot / circle = khoanh tròn 2 vòng, chỉ note_hook)",
+            "text", "")
 _BG = _spec("bg", "Nền giấy (ruled/plain/grid)", "text", "ruled")
 
 TEMPLATES = {
@@ -141,7 +143,7 @@ TEMPLATES = {
                   "KHÔNG PHẢI DO THUẬT TOÁN."),
             _spec("accent", "Từ được quẹt dạ quang", "text", "THUẬT TOÁN."),
             _spec("sub", "Dòng viết tay dưới (trống = không)", "text", ""),
-            _LAYOUT, _BG,
+            _FX, _LAYOUT, _BG,
         ],
         "build": _builder("note_hook", pt.note_hook),
     },
@@ -155,7 +157,7 @@ TEMPLATES = {
             _spec("stamp_col", "Màu tem (red/blue)", "text", "red"),
             _spec("sub", "Dòng viết tay dưới (trống = không)", "text",
                   "hỏi đúng câu mới ra video đúng"),
-            _LAYOUT, _BG,
+            _FX, _LAYOUT, _BG,
         ],
         "build": _builder("stamp_verdict", pt.stamp_verdict),
     },
@@ -167,7 +169,7 @@ TEMPLATES = {
             _spec("title", "Tiêu đề trang", "text", "Công thức giữ người xem"),
             _spec("lines", "Các dòng viết tay (ngăn |)", "text",
                   "Hook trong 3 giây đầu.|Mỗi 3 giây 1 biến cố mới.|Móc treo mở sớm, trả muộn.|Kết mở để kéo phần 2."),
-            _LAYOUT, _BG,
+            _FX, _LAYOUT, _BG,
         ],
         "build": _builder("notebook_demo", pt.notebook_demo),
     },
@@ -179,7 +181,7 @@ TEMPLATES = {
             _spec("head", "Tiêu đề viết tay", "text", "cùng một ý tưởng:"),
             _spec("label_a", "Nhãn tờ trái", "text", "không ai đạo diễn"),
             _spec("label_b", "Nhãn tờ phải", "text", "có người đạo diễn"),
-            _LAYOUT, _BG,
+            _FX, _LAYOUT, _BG,
         ],
         "build": _builder("paper_ab", pt.paper_ab),
     },
@@ -192,7 +194,7 @@ TEMPLATES = {
             _spec("items", "Các mục (cách nhau dấu phẩy, tối đa 6)", "text",
                   "Hook trong 3 giây đầu,Mỗi 3 giây 1 biến cố mới,Kết mở để kéo phần 2"),
             _spec("circle", "Từ khoanh tròn ở mục cuối", "text", "phần 2"),
-            _LAYOUT, _BG,
+            _FX, _LAYOUT, _BG,
         ],
         "build": _builder("checklist", pt.checklist),
     },
@@ -204,7 +206,7 @@ TEMPLATES = {
             _spec("value", "Số đích", "number", "1298"),
             _spec("label", "Nhãn viết tay", "text", "hiệu ứng âm thanh"),
             _spec("sub", "Dòng phụ (trống = không)", "text", ""),
-            _LAYOUT, _BG,
+            _FX, _LAYOUT, _BG,
         ],
         "build": _builder("big_number_ink", pt.big_number_ink),
     },
@@ -219,7 +221,7 @@ TEMPLATES = {
             _spec("count", "Tổng số note", "number", "6"),
             _spec("cols", "Số cột", "number", "3"),
             _spec("caption", "Chú thích dưới (trống = không)", "text", ""),
-            _LAYOUT, _BG,
+            _FX, _LAYOUT, _BG,
         ],
         "build": _builder("note_grid", pt.note_grid),
     },
@@ -233,7 +235,7 @@ TEMPLATES = {
             _spec("question", "Câu hỏi lật (đỏ)", "text", "25% còn lại?"),
             _spec("answer", "Dòng trả lời", "text",
                   "Là BẠN. Ý tưởng của BẠN."),
-            _LAYOUT, _BG,
+            _FX, _LAYOUT, _BG,
         ],
         "build": _builder("progress_hand", pt.progress_hand),
     },
@@ -247,7 +249,7 @@ TEMPLATES = {
                   "Ý 1::hook thật mạnh|Ý 2::biến cố liên tục|Ý 3::kết mở phần 2"),
             _spec("stamp", "Tem chốt (trống = không)", "text",
                   "GIỮ ĐƯỢC NGƯỜI XEM"),
-            _LAYOUT, _BG,
+            _FX, _LAYOUT, _BG,
         ],
         "build": _builder("steps_up", pt.steps_up),
     },
@@ -262,7 +264,7 @@ TEMPLATES = {
             _spec("done_text", "Chữ nút sau khi bấm", "text", "ĐÃ THEO DÕI"),
             _spec("side_text", "Chữ cạnh nút (trống = không)", "text",
                   "để xem PHẦN 2"),
-            _LAYOUT, _BG,
+            _FX, _LAYOUT, _BG,
         ],
         "build": _builder("follow_end_paper", pt.follow_end_paper),
     },
@@ -281,6 +283,9 @@ def draw_template(name, params, tm, dur, text, typed=None, popup=None):
     p = _full_params(name, params, dur)
     fn = TEMPLATES[name]["build"](p, {"text": text})
     img = fn(tm, dur)
+    if "flip" in str(p.get("fx", "") or "").lower():
+        # fx=flip: lat trang CONG thay cho truot trang thang mac dinh
+        return pt.page_flip(img, tm)
     return pt.page_in(img, tm)
 
 

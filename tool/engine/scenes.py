@@ -14,7 +14,7 @@ Chuyen canh = HARD CUT. Cam zoompan tren anh tinh.
 """
 import math
 
-from PIL import ImageFont
+from PIL import Image, ImageFont
 
 from painter import (FVT, PAL, Painter, clamp, dark, draw_background,
                      draw_orb, cube, ease_in_quad, ease_out_back,
@@ -543,6 +543,57 @@ def scene08(p, t, tm, params=None):
         p.px(gx, gy, pal["lamp_hi"])
 
 
+# ================================================================= CANH 09
+def scene09(p, t, tm, params=None):
+    """Sao bang quet canh (MOI V2.6): sao chao lon quet cheo qua bau
+    troi sao kem duoi sang dai, 3 sao bang nho chay ngau nhien theo
+    chu ky; mat trang pulse nhe o goc. Hop cau 'bung no / vuot troi /
+    khoanh khac dang nho'."""
+    pal = p.pal
+    draw_background(p, stars_for(777), tm)
+    # mat trang pulse goc tren trai
+    pu = 1 + 0.05 * math.sin(tm * 1.8)
+    p.circle(0.085, 0.14, 0.045 * pu, pal["moon"])
+    p.circle(0.072, 0.125, 0.012, pal["window_d"])
+    p.circle(0.098, 0.155, 0.009, pal["window_d"])
+
+    def meteor(q, x0, y0, dx, dy, tail, head_c, mid_c):
+        """1 sao bang: q = tien trinh 0..1 doc duong cheo."""
+        hx, hy = x0 + dx * q, y0 + dy * q
+        segs = 7
+        for i in range(segs):
+            f0 = i / float(segs)
+            f1 = (i + 1) / float(segs)
+            c = head_c if i == 0 else (mid_c if i < 3 else pal["star_dim"])
+            p.line(hx - dx * tail * f0, hy - dy * tail * f0,
+                   hx - dx * tail * f1, hy - dy * tail * f1,
+                   c, wpx=2 if i < 2 else 1)
+        # dau sao: cum pixel sang + halo
+        gx, gy = int(hx * p.w), int(hy * p.h)
+        p.rect_px(gx - 2, gy - 2, gx + 2, gy + 2, pal["halo_teal"])
+        p.rect_px(gx - 1, gy - 1, gx + 1, gy + 1, head_c)
+
+    # sao chao CHINH: quet cheo phai-tren -> trai-duoi, chu ky 2.4s,
+    # nghi 0.5s giua 2 lan quet
+    cyc = (tm % 2.9) / 2.4
+    if cyc <= 1.0:
+        meteor(cyc, 1.08, 0.02, -1.30, 0.78, 0.30,
+               pal["window"], pal["orange"])
+        # vong pulse khi sao di qua giua khung
+        if 0.42 < cyc < 0.75:
+            k = (cyc - 0.42) / 0.33
+            r = 0.03 + 0.16 * k
+            p.arc(0.44 - r, 0.36 - r * p.w / p.h, 0.44 + r,
+                  0.36 + r * p.w / p.h, 0, 360, pal["cyan_d"], wpx=1)
+    # 3 sao bang nho: chu ky lech pha nhau
+    for i, (per, ph) in enumerate([(1.7, 0.4), (2.3, 1.3), (3.1, 2.2)]):
+        q = ((tm + ph) % per) / per
+        if q > 0.85:
+            continue
+        meteor(q, 0.95 - 0.18 * i, 0.06 + 0.10 * i, -0.85, 0.52, 0.16,
+               pal["star"], pal["cyan"])
+
+
 SCENES = {
     1: ("Quả cầu nuốt cảnh", "tăng trưởng · nguy cơ phình to", scene01),
     2: ("Cân so sánh A vs B", "so sánh · bên nào nặng hơn", scene02),
@@ -552,11 +603,28 @@ SCENES = {
     6: ("Bản đồ hành trình", "quá trình · từng bước một", scene06),
     7: ("Cỗ máy vận hành", "cơ chế · bên trong nó chạy thế nào", scene07),
     8: ("Người trong cảnh", "con người · bị công nghệ tác động", scene08),
+    9: ("Sao băng quét cảnh", "bùng nổ · khoảnh khắc vụt sáng", scene09),
 }
 
 
 def draw_scene(scene_id, t, tm, params=None):
-    """Ve 1 frame cua canh len luoi 320x180, tra ve PIL Image (RGB)."""
+    """Ve 1 frame cua canh len luoi 320x180, tra ve PIL Image (RGB).
+
+    Tuy chon MOI (V2.6): params {"fx": "pixelate"} = chuyen canh VO
+    PIXEL - dau shot vo manh roi ro dan, cuoi shot vo lai. Mac dinh
+    (khong co fx) giu nguyen 100% hanh vi cu."""
     p = Painter()
     SCENES[int(scene_id)][2](p, clamp(t), max(0.0, tm), params=params)
-    return p.img
+    img = p.img
+    fx = str(_params(params).get("fx", "") or "").strip().lower()
+    if fx in ("pixelate", "vo-pixel", "vo_pixel"):
+        block = 0
+        if t < 0.10:
+            block = int(9 * (1 - t / 0.10)) + 1
+        elif t > 0.92:
+            block = int(9 * ((t - 0.92) / 0.08)) + 1
+        if block > 1:
+            small = img.resize((max(1, p.w // block),
+                                max(1, p.h // block)), Image.NEAREST)
+            img = small.resize((p.w, p.h), Image.NEAREST)
+    return img

@@ -125,14 +125,22 @@ _PREP = {
 }
 
 
-def _layout_of(p):
-    return 1 if str(p.get("layout", "") or "").strip() == "2" else 0
+def _layout_of(p, key=None):
+    """Bien the bo cuc: "1"->0, "2"->1, "3"->2 (chi mau nao co >=3
+    bien the, hien tai: follow_end). Ngoai pham vi -> 0 (nhu cu)."""
+    raw = str(p.get("layout", "") or "").strip()
+    try:
+        v = int(float(raw)) - 1
+    except ValueError:
+        return 0
+    n = VARIANTS.get(key, 2) if key else 2
+    return v if 0 <= v < n else 0
 
 
 def _full_params(key, params, dur):
     info = TEMPLATES[key]
     p = _merged(info["params"], params)
-    p["_layout"] = _layout_of(p)
+    p["_layout"] = _layout_of(p, key)
     prep = _PREP.get(key)
     if prep:
         p.update(prep(p, dur))
@@ -145,7 +153,7 @@ def _builder(key, draw_fn):
         def fn(t, dur):
             info = TEMPLATES[key]
             full = _merged(info["params"], p)
-            full["_layout"] = _layout_of(full)
+            full["_layout"] = _layout_of(full, key)
             prep = _PREP.get(key)
             if prep:
                 full.update(prep(full, dur))
@@ -230,6 +238,8 @@ TEMPLATES = {
                   "red"),
             _spec("sub", "Dòng phụ pixel dưới (để trống = không)", "text",
                   "cùng một AI - khác người đạo diễn"),
+            _spec("fx", "Hiệu ứng (trống / sweep = vệt đèn sân khấu quét ngang)",
+                  "text", ""),
             _spec("layout", "Biến thể bố cục (trống = tự xoay, 1/2)",
                   "text", ""),
         ],
@@ -326,7 +336,7 @@ TEMPLATES = {
             _spec("done_text", "Chữ nút sau khi bấm", "text", "ĐÃ THEO DÕI"),
             _spec("side_text", "Chữ cạnh nút (để trống = không)", "text",
                   "để xem PHẦN 2"),
-            _spec("layout", "Biến thể bố cục (trống = tự xoay, 1/2)",
+            _spec("layout", "Biến thể bố cục (trống = tự xoay, 1/2; 3 = pháo giấy pixel ăn mừng)",
                   "text", ""),
         ],
         "build": _builder("follow_end", t1.follow_end),
@@ -351,6 +361,7 @@ TEMPLATES = {
 
 
 VARIANTS = {k: 2 for k in TEMPLATES}
+VARIANTS["follow_end"] = 3  # bien the 3: phao giay pixel an mung (V2.6)
 
 
 def template_catalog():

@@ -235,8 +235,81 @@ def fx_glitch_cut(img, t, t0=0.0, dur=0.14):
     return out
 
 
+def fx_static(img, t, dur_shot, head=0.30, tail=0.28):
+    """Nhieu mat song (static burst) o dau va cuoi shot - chi khi
+    nguoi dung chon fx=static: tuyet nhieu trang/xanh + vai dai ngang
+    loan, manh nhat o mep thoi gian roi tan dan."""
+    if t < head:
+        k = 1.0 - t / head
+    elif t > dur_shot - tail:
+        k = (t - (dur_shot - tail)) / tail
+    else:
+        return img
+    if k <= 0.02:
+        return img
+    out = img.copy()
+    d = ImageDraw.Draw(out, "RGBA")
+    rng = random.Random(int(t * 24) * 7919 + 13)
+    n = int(2600 * k)
+    for _ in range(n):
+        x, y = rng.randint(0, W - 1), rng.randint(0, H - 1)
+        v = rng.randint(90, 255)
+        col = (v, v, v) if rng.random() < 0.6 else (120, 255, 160)
+        d.point((x, y), fill=col + (int(200 * k),))
+    for _ in range(int(7 * k) + 1):
+        y = rng.randint(0, H - 8)
+        d.rectangle([0, y, W, y + rng.randint(2, 6)],
+                    fill=(220, 230, 220, int(90 * k)))
+    return out
+
+
 def _lay(p):
     return int(p.get("_layout", 0))
+
+
+# =====================================================================
+# 11. ALERT WARN - canh bao do nhap nhay toan khung (mau moi V2.6)
+# =====================================================================
+def alert_warn(t, dur, p):
+    img = bg()
+    lay = _lay(p)
+    d = ImageDraw.Draw(img)
+    blink_on = int(t * 2.4) % 2 == 0
+    # soc hazard tren/duoi
+    for x in range(-40, W, 56):
+        col = RED if blink_on else (150, 40, 34)
+        d.polygon([(x, 0), (x + 28, 0), (x + 14, 30), (x - 14, 30)],
+                  fill=col + (255,))
+        d.polygon([(x, H), (x + 28, H), (x + 14, H - 30), (x - 14, H - 30)],
+                  fill=col + (255,))
+    # khung vien do nhap nhay
+    bw = 6 if blink_on else 3
+    d.rectangle([26, 44, W - 26, H - 44], outline=RED + (255,), width=bw)
+    head = p["head"]
+    if blink_on or t < 0.4:
+        size = fit_size(head, 1120, 120, 52)
+        text_c(img, head, 190, size, RED, JB)
+    else:
+        size = fit_size(head, 1120, 120, 52)
+        text_c(img, head, 190, size, (170, 50, 44), JB)
+    if p["sub"]:
+        n = typed_slice(p["sub"], t, 0.7, 30)
+        if n > 0:
+            x = 110 if lay == 1 else W / 2 - _tw(p["sub"][:n],
+                                                 _font(JBR, 40)) / 2
+            glow_text(img, p["sub"][:n], x, 268, 40, AMBER, JBR)
+    lines = [x.strip() for x in p["lines"].split("|") if x.strip()]
+    for i, ln in enumerate(lines[:4]):
+        at = 1.1 + i * 0.4
+        if t < at:
+            continue
+        y = 356 + i * 62
+        glow_text(img, "[!]", 110, y, 38, RED, JB, glow=False)
+        glow_text(img, ln, 190, y, 38, GREEN_SOFT, JBR, glow=False)
+    if lay == 1:
+        glow_text(img, "muc do: NGHIEM TRONG", 110, 640, 30, RED, JB,
+                  glow=False)
+    return img
 
 
 # =====================================================================

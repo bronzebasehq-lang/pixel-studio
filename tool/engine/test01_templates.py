@@ -215,6 +215,30 @@ def fx_shake(img, t, t0, mag=7, dur=0.09):
     return out
 
 
+def fx_confetti_pixel(img, t, t0, seed=21):
+    """Phao giay PIXEL an mung (bien the 3 cua follow_end): manh
+    vuong pixel mau roi tu tren xuong sau khi bam nut, lac nhe."""
+    if t < t0:
+        return img
+    rng = random.Random(seed)
+    d = ImageDraw.Draw(img)
+    cols = [RED, TEAL, CREAM, (255, 200, 64)]
+    for i in range(52):
+        x0 = rng.uniform(10, W - 20)
+        speed = rng.uniform(150, 330)
+        y = ((rng.uniform(0, H) + (t - t0) * speed) % (H + 50)) - 25
+        s = rng.choice([6, 8, 8, 10, 12])
+        sway = math.sin((t - t0) * 2.4 + i * 1.7) * 14
+        col = cols[i % 4]
+        if i % 5 == 4:  # vai manh la dai chu nhat nhu giay cat
+            d.rectangle([x0 + sway, y, x0 + sway + s * 1.8, y + s * 0.6],
+                        fill=col + (255,))
+        else:
+            d.rectangle([x0 + sway, y, x0 + sway + s, y + s],
+                        fill=col + (255,))
+    return img
+
+
 def fx_glitch_slices(img, t, t0, dur=0.22):
     """Xe ngang 3 dai anh trong cua so [t0, t0+dur] (phong cach style2)."""
     if not (t0 <= t <= t0 + dur):
@@ -467,7 +491,13 @@ def type_window(t, dur, p):
 # =====================================================================
 def stage_text(t, dur, p):
     lay = _lay(p)
-    img = stage_bg(t, cone_dx=-300 if lay == 1 else 0)
+    if str(p.get("fx", "") or "").strip().lower() in ("sweep", "den",
+                                                      "light"):
+        # fx=sweep: vet den san khau QUET NGANG qua lai, chu ky 2.6s
+        cone_dx = int(-520 + 1040 * ((t % 2.6) / 2.6))
+    else:
+        cone_dx = -300 if lay == 1 else 0
+    img = stage_bg(t, cone_dx=cone_dx)
     if lay == 1:  # bien the B: chu canh trai trong con den dich trai
         draw_pop_text(img, p["small"], 196, 46, CREAM, t, 0.15,
                       cx=_left_cx(p["small"], 46, x0=130))
@@ -789,6 +819,7 @@ def progress_bar(t, dur, p):
 def follow_end(t, dur, p):
     img = bg_plain()
     lay = _lay(p)
+    lay_i = lay  # giu bien the goc (bien 'lay' bi tai dung o duoi)
     if lay == 1:  # bien the B: chu canh trai, nut o phia trai
         draw_pop_text(img, p["main"], 200, 56, CREAM, t, 0.15,
                       cx=_left_cx(p["main"], 56, x0=110))
@@ -845,6 +876,9 @@ def follow_end(t, dur, p):
         side_cx = 722 if lay == 1 else 1042
         draw_pop_text(img, p["side_text"], 540, 38, CREAM, t, 1.15,
                       cx=side_cx)
+    if lay_i == 2:
+        # bien the 3: phao giay pixel an mung sau khi bam nut
+        img = fx_confetti_pixel(img, t, click_at)
     # con tro: bay vao tu goc duoi phai, dung lai o nut
     move = clamp((t - (click_at - 0.45)) / 0.45)
     if move > 0:

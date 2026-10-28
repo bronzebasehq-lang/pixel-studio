@@ -138,6 +138,27 @@ def bg():
     return _BG.copy()
 
 
+def tape_wipe(img, t, dur_in=0.50):
+    """Dai bang dinh keo ngang LAU canh (fx=tape): dai bang dinh ban
+    trong vang nhat, nghieng nhe, quet trai -> phai trong dur_in dau
+    shot; mep dan co vet sang. Sau khi quet xong thi bien mat."""
+    if t >= dur_in:
+        return img
+    pr = ease_out_cubic(t / dur_in)
+    cx = -260 + (W + 520) * pr
+    lay = Image.new("RGBA", (360, H + 320), (0, 0, 0, 0))
+    ld = ImageDraw.Draw(lay)
+    ld.rectangle([30, 0, 330, H + 320], fill=(246, 231, 183, 150))
+    ld.rectangle([30, 0, 52, H + 320], fill=(255, 246, 214, 190))
+    ld.rectangle([308, 0, 330, H + 320], fill=(214, 196, 148, 150))
+    for yy in range(40, H + 320, 90):       # vet mo ngang cua bang dinh
+        ld.line([(36, yy), (324, yy)], fill=(255, 255, 255, 36), width=3)
+    lay = lay.rotate(-7, expand=True, resample=Image.BICUBIC)
+    out = img.copy()
+    out.alpha_composite(lay, (int(cx - lay.width / 2), -160))
+    return out
+
+
 def tear_in(img, t, dur_in=0.30):
     """Xe giay dau shot: tam bao phu truot len tren, mep duoi rang cua."""
     if t >= dur_in:
@@ -231,7 +252,7 @@ def place_tile(img, text, style, size, cx, cy, t, at, rng, with_pin=False,
 
 
 def word_tiles(img, text, cy, size, t, start_at, step, seed, styles=None,
-               align="c", x_left=90, max_w=1180):
+               align="c", x_left=90, max_w=1180, jitter=False):
     """Dan tung TU cua 1 cau thanh o (xep 1-2 dong theo chieu rong).
     Tra (so o da dan, y dong cuoi)."""
     rng = random.Random(seed)
@@ -261,7 +282,13 @@ def word_tiles(img, text, cy, size, t, start_at, step, seed, styles=None,
             else x_left + row[0][2] / 2
         for (w_, st, wdt) in row:
             at = start_at + idx * step
-            place_tile(img, w_, st, size, x, yy, t, at, rng,
+            jx = jy = 0
+            if jitter and t >= at:
+                # fx=jitter: o chu RUNG +-2px theo nhip ~9 lan/giay
+                ph = int(t * 9)
+                jx = 2 if ph % 2 == 0 else -2
+                jy = -1 if ph % 3 == 0 else 1
+            place_tile(img, w_, st, size, x + jx, yy + jy, t, at, rng,
                        with_tape=(idx % 4 == 2))
             x += wdt
             idx += 1
@@ -402,7 +429,8 @@ def tile_hook(t, dur, p):
         pin(img, nx + note_w // 2, ny + 16, 14)
     align = "c" if lay == 0 else "l"
     word_tiles(img, p["head"], 356, 96, t, 0.45, 0.13, _seed(p, 1),
-               align=align, x_left=110)
+               align=align, x_left=110,
+               jitter=("jitter" in str(p.get("fx", "") or "").lower()))
     if p["sub"]:
         word_tiles(img, p["sub"], 592, 44, t, 1.5, 0.09, _seed(p, 2),
                    align=align, x_left=110)

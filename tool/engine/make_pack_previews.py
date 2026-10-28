@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Sinh GIF preview dong cho 3 goi moi -> previews/<tien-to>-<key>.gif.
+"""Sinh GIF preview dong cho cac goi template -> previews/<tien-to>-<key>.gif.
 
 Cung chuan voi make_test01_previews.py: 480x270, ~2s loop, 24 khung.
-Chay tay: python3 engine/make_pack_previews.py [crt|paper|zine ...]
+Chay tay: python3 engine/make_pack_previews.py [crt|paper|zine|clay|flat|show ...]
 """
 import os
 import sys
@@ -13,8 +13,11 @@ sys.path.insert(0, ENGINE_DIR)
 
 from PIL import Image  # noqa: E402
 
+import clay_scenes  # noqa: E402
 import crt_scenes  # noqa: E402
+import flat_scenes  # noqa: E402
 import paper_scenes  # noqa: E402
+import show_scenes  # noqa: E402
 import zine_scenes  # noqa: E402
 
 PREVIEW_DIR = os.path.join(TOOL_DIR, "previews")
@@ -22,7 +25,8 @@ PW, PH = 480, 270
 N_FRAMES, GIF_FPS, DUR = 24, 12, 4.2
 
 MODS = {"crt": (crt_scenes, "crt"), "paper": (paper_scenes, "paper"),
-        "zine": (zine_scenes, "zine")}
+        "zine": (zine_scenes, "zine"), "clay": (clay_scenes, "clay"),
+        "flat": (flat_scenes, "flat"), "show": (show_scenes, "show")}
 
 
 def make_preview(mod, prefix, key):

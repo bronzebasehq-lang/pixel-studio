@@ -152,6 +152,8 @@ def _spec(key, label, typ, default):
 
 _LAYOUT = _spec("layout", "Biến thể bố cục (trống = tự xoay, 1/2)",
                 "text", "")
+_FX = _spec("fx", "Hiệu ứng (trống / tape = băng dính kéo ngang đầu shot / jitter = ô chữ rung, chỉ tile_hook)",
+            "text", "")
 
 TEMPLATES = {
     "tile_hook": {
@@ -164,6 +166,7 @@ TEMPLATES = {
             _spec("head", "Headline ô chữ", "text",
                   "KHÔNG PHẢI DO THUẬT TOÁN ĐÂU!"),
             _spec("sub", "Dòng ô nhỏ dưới (trống = không)", "text", ""),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("tile_hook", zt.tile_hook),
@@ -176,6 +179,7 @@ TEMPLATES = {
             _spec("head", "Headline ô chữ", "text", "HỎI SAI CÂU RỒI"),
             _spec("tag", "Chữ nhãn sao (2 dòng ngăn |)", "text", "SAI!|BÉT NHÈ"),
             _spec("sub", "Dòng ô nhỏ dưới (trống = không)", "text", ""),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("verdict_tag", zt.verdict_tag),
@@ -189,6 +193,7 @@ TEMPLATES = {
             _spec("lines", "Dòng viết tay trong mẩu báo (ngăn |)", "text",
                   "Đạo diễn, không phải máy nhắc chữ.|1. Đọc gu trước.|2. Khóa mốc nhịp.|3. Chữ chạy theo nhịp nói."),
             _spec("side", "Ô chữ phụ bên phải (biến thể 2)", "text", "ĐỌC KỸ"),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("clipping_window", zt.clipping_window),
@@ -201,6 +206,7 @@ TEMPLATES = {
             _spec("head", "Tiêu đề ô chữ", "text", "CÙNG MỘT AI"),
             _spec("label_a", "Nhãn mẩu trái", "text", "KHÔNG AI ĐẠO DIỄN"),
             _spec("label_b", "Nhãn mẩu phải", "text", "CÓ NGƯỜI ĐẠO DIỄN"),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("ab_clippings", zt.ab_clippings),
@@ -213,6 +219,7 @@ TEMPLATES = {
             _spec("title", "Tiêu đề ô chữ", "text", "CÔNG THỨC GIỮ CHÂN"),
             _spec("items", "Mục (Nhãn::nội dung, ngăn |)", "text",
                   "BƯỚC 1::hook 3 giây đầu|BƯỚC 2::3 giây 1 biến cố|QUAN TRỌNG::kết mở kéo phần 2"),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("pinned_list", zt.pinned_list),
@@ -225,6 +232,7 @@ TEMPLATES = {
             _spec("value", "Số đích", "number", "1298"),
             _spec("label", "Nhãn ô chữ dưới thẻ", "text", "HIỆU ỨNG ÂM THANH"),
             _spec("burst", "Chữ nhãn sao (ngăn |)", "text", "ĐÃ|ĐẾM HẾT"),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("price_number", zt.price_number),
@@ -239,6 +247,7 @@ TEMPLATES = {
             _spec("cols", "Số cột", "number", "5"),
             _spec("caption", "Ô chữ chú thích (trống = không)", "text",
                   "CHỌN LÀ CHẠY"),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("tile_grid", zt.tile_grid),
@@ -252,6 +261,7 @@ TEMPLATES = {
             _spec("line1", "Dòng 1", "text", "Hệ thống lo 70%"),
             _spec("question", "Câu hỏi lật", "text", "30% còn lại?"),
             _spec("answer", "Dòng trả lời", "text", "Là BẠN. Gu của BẠN."),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("ruler_progress", zt.ruler_progress),
@@ -267,6 +277,7 @@ TEMPLATES = {
                   "CÀNG VỀ CUỐI|CÀNG DÍCH"),
             _spec("caption", "Ô chữ chú thích (trống = không)", "text",
                   "MỖI Ý MỚI = +1 COMBO"),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("stack_combo", zt.stack_combo),
@@ -283,6 +294,7 @@ TEMPLATES = {
             _spec("done_text", "Chữ nút sau khi bấm", "text", "ĐÃ THEO DÕI"),
             _spec("side", "Chữ cạnh nút (viết tay)", "text",
                   "dán tiếp tại đây"),
+            _FX,
             _LAYOUT,
         ],
         "build": _builder("poster_end", zt.poster_end),
@@ -302,7 +314,11 @@ def draw_template(name, params, tm, dur, text, typed=None, popup=None):
     p = _full_params(name, params, dur)
     fn = TEMPLATES[name]["build"](p, {"text": text})
     img = fn(tm, dur)
-    return zt.tear_in(img, tm)
+    img = zt.tear_in(img, tm)
+    if "tape" in str(p.get("fx", "") or "").lower():
+        # fx=tape: dai bang dinh keo ngang lau canh ngay sau xe giay
+        img = zt.tape_wipe(img, tm)
+    return img
 
 
 def events_for(name, params, dur):

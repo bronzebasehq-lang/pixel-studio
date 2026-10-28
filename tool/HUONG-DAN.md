@@ -8,16 +8,89 @@ không gửi đi đâu, không tốn phí).
 Đây là **dự án riêng cho kênh mới**, tách biệt hẳn tool videos hiện tại —
 hai tool không dùng chung gì cả, cứ yên tâm dùng song song.
 
+## MỚI: GIAO DIỆN 3 BƯỚC + THƯ VIỆN DẠNG HỘP MỞ
+
+Trang tool KHÔNG còn là 1 trang dài cuộn mãi nữa — đã chia thành
+**3 trang tab** đi theo đúng thứ tự làm việc:
+
+1. **Tab "1 · Kịch bản":** chọn gói phong cách (mục 0) + dán kịch bản.
+   Cuối trang có nút xanh **SANG BƯỚC 2 · TỪNG CÂU »**.
+2. **Tab "2 · Từng câu":** danh sách thẻ câu như trước; mỗi thẻ có thêm
+   nút **Thư Viện** màu hổ phách (xem điểm 2 dưới đây).
+3. **Tab "3 · Xem trước & Render":** hộp xem trước + chọn nhạc + nút
+   Render + nối video, y như trước nhưng nằm ở trang riêng cho gọn.
+
+Chuyển tab chỉ ẩn/hiện trang — **không tải lại, không mất việc đang làm
+dở** (kịch bản đã dán, cảnh đã đổi tay... giữ nguyên hết). Đầu trang 2
+và 3 cũng có nút qua lại bước, khỏi cần cuộn lên thanh tab.
+
+**Thư viện Style2 đã dời khỏi cuối trang** thành 1 **hộp mở đè** (mở
+lên che màn hình; đóng bằng nút ✕ góc phải, nút "Đóng", hoặc bấm ra
+ngoài hộp):
+
+- Bấm nút **THƯ VIỆN** màu hổ phách ở thanh tab (bên phải) để MỞ XEM
+  thư viện: tìm kiếm, lọc theo nhóm như cũ — chế độ này chỉ xem, chưa
+  gắn vào câu nào; trong hộp sẽ hiện dòng hướng dẫn màu hổ phách.
+- Muốn gán 1 ảnh trong thư viện làm nền cho 1 câu cụ thể: sang Bước 2,
+  bấm nút **Thư Viện** ngay trong thẻ của câu đó → hộp thư viện mở ra
+  kèm dòng "Đang sửa: Câu N · cảnh ..." → bấm **"Đặt làm nền"** ở mục
+  muốn dùng → hộp tự đóng, ảnh đã gán vào đúng câu đó.
+
+---
+
+## MỚI: 8 GÓI PHONG CÁCH + HIỆU ỨNG MỚI CHO GÓI CŨ
+
+Mục 0 ở Bước 1 giờ có **8 thẻ gói** (mỗi video vẫn thuộc đúng 1 gói):
+
+1. **PIXEL 16-BIT** — gói gốc (9 cảnh code + 8 template Style2).
+2. **STAGE** — kinetic sân khấu gỗ (11 mẫu).
+3. **CRT** — terminal xanh lá (11 mẫu, thêm mẫu **alert_warn** cảnh
+   báo đỏ).
+4. **PAPER** — giấy & mực viết tay (10 mẫu).
+5. **ZINE** — cắt dán tạp chí (10 mẫu).
+6. **ĐẤT SÉT** (MỚI) — clay stop-motion: khối nặn bo tròn màu kẹo
+   trên nền kem, nảy "squash" khi xuất hiện, con sâu đất sét làm
+   thanh tiến trình, nút đất sét ở màn cuối (10 mẫu).
+7. **FLAT** (MỚI) — đồ họa phẳng hiện đại: nền màu trơn, khối hình
+   học gọn, biểu đồ phẳng + số khổng lồ (10 mẫu).
+8. **SHOW** (MỚI) — gameshow truyền hình: biển marquee viền bóng đèn
+   nhấp nháy đuổi nhau, vòng quay may mắn, bảng điểm LED, bục
+   1-2-3, pháo giấy ở màn cuối (10 mẫu).
+
+Cách dùng không đổi: chọn gói → dán kịch bản → tool tự gán cảnh của
+gói đó → chỉnh tay ở Bước 2 → Render ở Bước 3. Job cũ của mọi gói vẫn
+mở và render như trước.
+
+**Hiệu ứng mới cho gói cũ** (đều là TÙY CHỌN thêm — không chọn thì
+mọi thứ y như cũ):
+
+- **PIXEL:** thêm cảnh **#9 Sao băng quét cảnh**. Muốn chuyển cảnh
+  "vỡ pixel" cho 1 câu: thêm tham số `fx = pixelate` cho câu đó
+  (đầu câu vỡ pixel rồi rõ dần, cuối câu vỡ lại).
+- **STAGE:** màn cuối `follow_end` có **biến thể 3 = pháo giấy
+  pixel** ăn mừng (ô "Biến thể bố cục" trên thẻ câu, điền 3). Mẫu
+  `stage_text` điền tham số **Hiệu ứng = sweep** để đèn sân khấu
+  quét ngang.
+- **CRT / PAPER / ZINE:** trên thẻ câu có thêm ô tham số **"Hiệu
+  ứng"**: CRT điền `static` (nhiễu mất sóng đầu/cuối câu); PAPER
+  điền `flip` (lật trang cong) hoặc `circle` ở mẫu note_hook
+  (khoanh tròn 2 vòng từ khóa); ZINE điền `tape` (băng dính kéo
+  ngang lau cảnh) hoặc `jitter` ở mẫu tile_hook (ô chữ rung).
+  Gộp được nhiều hiệu ứng bằng dấu phẩy, ví dụ `flip,circle`.
+
+---
+
 ## MỚI Ở V2.3 (25/10/2026)
 
-1. **Thư viện gọn + tìm được:** thư viện Style2 ở cột 3 đã chia nhóm có
+1. **Thư viện gọn + tìm được:** thư viện Style2 (nay mở bằng nút
+   **THƯ VIỆN** — xem mục mới ở đầu tài liệu này) đã chia nhóm có
    tiêu đề (Điện thoại · Cảnh nền · Ẩn dụ · Template — số liệu · Chân
    dung pixel), có **ô tìm kiếm** lọc theo tên/từ khoá/nhóm, mỗi mục
    hiện sẵn **từ khoá** dưới tên. 3 ảnh thật chuyển vào mục **"Tham
    chiếu vẽ"** thu gọn ở cuối thư viện (chỉ để tham chiếu vẽ, KHÔNG
    dùng làm nền); 5 mục hỗ trợ nội bộ của template được ẩn khỏi lưới.
    Mỗi ảnh có nút **"Đặt làm nền"** — gán thẳng làm ảnh nền cho câu
-   đang chọn ở cột 2.
+   đang mở thư viện ở Bước 2.
 2. **8 template Style2 thành mẫu cảnh thật:** counter, chart,
    price_bars, death_spiral, quote_card, definition_card, game_over,
    end_card — chọn ở bảng **Đổi cảnh** (nhóm "Style2 — số liệu"). Mỗi
@@ -26,7 +99,7 @@ hai tool không dùng chung gì cả, cứ yên tâm dùng song song.
    có thêm **chữ chạy** gõ từng ký tự (mặc định lấy chữ của câu, tắt
    hoặc ghi đè được) và **caption pop-up** chữ lớn vàng hiện ~1,2 giây
    đầu cảnh, phủ lên trên media.
-3. **Định dạng dọc 9:16 cho Shorts:** ô **Định dạng** ở cột 3 đã mở
+3. **Định dạng dọc 9:16 cho Shorts:** ô **Định dạng** ở Bước 3 đã mở
    khoá — chọn "Dọc 9:16 (1080×1920)" để render video dọc: nền sao phủ
    kín cả khung, nội dung cảnh nằm giữa khung theo chiều dọc, không
    kéo giãn méo hình. Áp dụng cho cả cảnh code lẫn template Style2.
@@ -36,8 +109,8 @@ hai tool không dùng chung gì cả, cứ yên tâm dùng song song.
 ## MỚI Ở V2.2 (25/10/2026)
 
 1. **Thư viện style2 từ video Nokia** — 30 ảnh nền + 8 template + nhạc
-   dark-empire-loop; xem trong mục **Thư viện Style2** ở cột 3 (bấm vào
-   từng mục để xem lớn ở hộp xem trước).
+   dark-empire-loop; mở bằng nút **THƯ VIỆN** trên đầu trang (bấm vào
+   từng mục để xem lớn ở hộp xem trước tại Bước 3).
 2. **Chuẩn mix kênh:** nhạc 0.34, loudnorm -15 LUFS.
 3. **End card mặc định đúng tên kênh 16BIT_EXE.**
 4. **Bản repo GitHub đã đồng bộ khớp bản chính.**
@@ -115,17 +188,20 @@ Cách đơn giản nhất:
   tool) và **trình duyệt tự mở** trang Pixel Studio V2 ở địa chỉ
   `localhost:8766`. Nếu trình duyệt không tự mở, tự gõ địa chỉ đó vào
   trình duyệt cũng được.
-- Trang hiện ra có **3 cột**: KỊCH BẢN · TỪNG CÂU · XEM TRƯỚC + RENDER.
+- Trang hiện ra mở sẵn ở **tab 1 · Kịch bản**. Trên đầu trang có thanh
+  tab: **1 · Kịch bản | 2 · Từng câu | 3 · Xem trước & Render** và nút
+  **THƯ VIỆN** màu hổ phách ở bên phải.
 
 ### Bước 2: Dán kịch bản — tool TỰ GÁN cảnh
-1. Ở cột 1, dán kịch bản tiếng Anh vào ô chữ.
+1. Ở Bước 1 (tab Kịch bản), dán kịch bản tiếng Anh vào ô chữ.
    → Ngay bên dưới, tool hiện lại kịch bản với **các từ manh mối được tô
    màu** (vàng = số %/tăng trưởng, xanh dương = so sánh, xanh lá = thứ tự
    bước, cam = mốc năm) và 2 ô thống kê: số câu + **bao nhiêu câu đã được
    TỰ GÁN**.
 2. Công tắc **"TỰ GÁN CẢNH THEO NỘI DUNG"** mặc định **BẬT**. Tắt nó đi
    thì tool quay về cách chọn tay toàn bộ như bản V1.
-3. Ở cột 2, mỗi câu là 1 thẻ. Với câu được tự gán, bạn sẽ thấy:
+3. Chuyển sang Bước 2 (bấm tab "2 · Từng câu" hoặc nút **SANG BƯỚC 2**
+   ở cuối trang): mỗi câu là 1 thẻ. Với câu được tự gán, bạn sẽ thấy:
    - Dòng xanh lá **"■ TỰ GÁN: <tên cảnh>"** và **dòng lý do** (tool gán
      vì trúng từ khóa/mẫu nào trong câu).
    - **Chip dữ kiện** (khung xanh nhỏ): ví dụ `300%` `3 years`, hoặc
@@ -156,9 +232,15 @@ Cách đơn giản nhất:
    ảnh về lưới 320×180 cho đúng chất pixel) thay cho cảnh vẽ bằng code.
    Giọng đọc, phụ đề và mũi tên chú thích vẫn có như thường.
 3. Muốn quay lại cảnh code: bấm **"Bỏ ảnh nền"** trên thẻ.
+4. **Cách khác — dùng ảnh có sẵn trong thư viện của tool:** ngay trong
+   thẻ câu có nút **Thư Viện** màu hổ phách → hộp thư viện mở ra (đầu
+   hộp ghi rõ "Đang sửa: Câu N") → tìm/chọn 1 ảnh → bấm **"Đặt làm
+   nền"** → hộp tự đóng và ảnh đã thành nền của câu đó. Giống hệt cách
+   tải ảnh lên ở trên, chỉ khác là ảnh lấy từ kho có sẵn.
 
 ### Bước 5: Chọn nhạc + Render
-1. Cột 3: giọng đọc đã khóa sẵn **am_adam** (không cần chọn). Ô
+1. Chuyển sang Bước 3 (tab "3 · Xem trước & Render"): giọng đọc đã
+   khóa sẵn **am_adam** (không cần chọn). Ô
    **Định dạng**: Ngang 16:9 (1920×1080, mặc định) hoặc **Dọc 9:16
    (1080×1920)** nếu làm Shorts.
 2. Ở ô **"Nhạc nền"**: chọn 1 trong **11 bài retro có sẵn** (bài 00 là
@@ -183,8 +265,8 @@ Quay lại cửa sổ đen → nhấn `Ctrl + C`, hoặc đóng luôn cửa sổ
   quên tick "Add to PATH" ở Bước 1. Cài lại Python, nhớ tick ô đó.
 - Báo **[LOI] Khong tim thay ffmpeg** → làm lại Bước 3.
 - Trang web báo lỗi đỏ khi render → đọc dòng lỗi cuối cùng trong ô trạng
-  thái ở cột 3, chụp màn hình gửi Rio.
-- Bấm Render mà bị nhắc **"Câu N chưa có cảnh"** → quay lại cột 2, chọn
+  thái ở Bước 3, chụp màn hình gửi Rio.
+- Bấm Render mà bị nhắc **"Câu N chưa có cảnh"** → quay lại Bước 2, chọn
   tay mẫu cảnh cho câu đó (thẻ viền đỏ) rồi render lại.
 - Render lâu: video 1 phút mất khoảng 5–8 phút trên máy thường (vẽ từng
   khung hình bằng code + sinh giọng đều chạy trên CPU). Cứ để chạy, đừng
@@ -214,9 +296,9 @@ Bấm **Đổi cảnh** ở thẻ câu → mở bảng chọn cảnh có:
 - **Lưới ảnh động:** nhìn hình chọn cảnh, nhanh hơn đọc tên. Cảnh nào bạn chọn tay nhiều lần sẽ tự nổi lên đầu lưới.
 
 ### 2. Ô xem trước tự bám theo thẻ câu
-Bấm vào bất kỳ thẻ câu nào ở cột 2 → ô **XEM TRƯỚC** ở cột 3 tự đổi sang đúng cảnh của câu đó (không cần bấm ảnh nhỏ nữa).
+Bấm vào bất kỳ thẻ câu nào ở Bước 2 → ô **XEM TRƯỚC** ở Bước 3 tự đổi sang đúng cảnh của câu đó (không cần bấm ảnh nhỏ nữa).
 
-### 3. Nối video (ở cột 3, dưới nút Render)
+### 3. Nối video (ở Bước 3, dưới nút Render)
 Quy trình làm video dài: **render từng khúc khoảng 30 giây** (mỗi khúc 4–5 câu) → các khúc hiện trong danh sách **NỐI VIDEO** → **tick chọn các khúc theo đúng thứ tự** (danh sách xếp theo tên file) → bấm **NỐI CÁC VIDEO ĐÃ CHỌN** → tool tạo 1 file `ghep-<ngày-giờ>.mp4` trong thư mục Videos.
 Lưu ý: chỉ nối được các video do chính tool này xuất ra (cùng định dạng). Đặt tên khúc có số thứ tự (01, 02, 03...) thì thứ tự nối luôn đúng.
 

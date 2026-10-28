@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """
 PIXEL STUDIO V2 - web server (Python chuan, khong can web framework).
-Mo http://localhost:8766 — giao dien 3 cot:
-  Cot 1: dan kich ban -> tu cat cau -> TU GAN CANH theo noi dung
-         (luat tu khoa chay offline, cong tac mac dinh BAT) + xem truoc
-         kich ban co to mau manh moi.
-  Cot 2: moi cau 1 the: GIF preview + nhan TU GAN + ly do + chip du kien
-         + thanh do khop + o doi tay (doi tay khoa the) + nhan chu thich
-         mui ten + chon anh nen lai.
-  Cot 3: xem truoc + giong khoa am_adam + thu vien nhac retro + RENDER.
+Mo http://localhost:8766 — giao dien 3 TRANG TAB (an/hien bang JS):
+  Buoc 1 (Kich ban): chon goi phong cach + dan kich ban -> tu cat cau
+         -> TU GAN CANH theo noi dung (luat tu khoa chay offline, cong
+         tac mac dinh BAT) + xem truoc kich ban co to mau manh moi.
+  Buoc 2 (Tung cau): moi cau 1 the: GIF preview + nhan TU GAN + ly do
+         + chip du kien + thanh do khop + doi canh + nut THU VIEN (mo
+         thu vien theo ngu canh cau do) + nhan chu thich mui ten
+         + chon anh nen lai.
+  Buoc 3 (Xem truoc & Render): xem truoc + giong khoa am_adam + thu
+         vien nhac retro + RENDER + noi video.
+         Thu vien Style2 nam trong HOP MO DE (modal) mo bang nut
+         THU VIEN o thanh tab hoac nut Thu Vien trong tung the cau.
 Du an RIENG cho kenh moi — khong dung chung code voi tool videos cu.
 """
 import base64
@@ -132,7 +136,7 @@ PAGE = r"""<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<title>PIXEL STUDIO V2.5 — 5 gói phong cách: PIXEL 16-BIT · STAGE · CRT · PAPER · ZINE</title>
+<title>PIXEL STUDIO V2.6 — 8 gói phong cách: PIXEL 16-BIT · STAGE · CRT · PAPER · ZINE · ĐẤT SÉT · FLAT · SHOW</title>
 <style>
 @font-face { font-family:'VT323'; src:url('/fonts/VT323.ttf'); }
 @font-face { font-family:'PS2P'; src:url('/fonts/PressStart2P.ttf'); }
@@ -145,8 +149,30 @@ h1 .tag { font-family:'VT323'; font-size:22px; color:#ffd84f; }
 .lock { border:2px solid #584ca8; background:#1e1a38; padding:8px 14px; font-size:13.5px; line-height:1.5; }
 .lock b { color:#ffd84f; } .lock .c2 { color:#40c8dc; font-weight:bold; }
 .lock .c3 { color:#46c878; font-weight:bold; }
-main { display:grid; grid-template-columns: 30% 37% 33%; gap:14px; padding:14px 22px 26px; }
-.panel { border:2px solid #584ca8; background:#181530; padding:14px; position:relative; }
+main { display:block; padding:6px 22px 26px; }
+.panel { border:2px solid #584ca8; background:#181530; padding:14px; position:relative; margin-bottom:14px; }
+#tabbar { display:flex; gap:10px; align-items:stretch; padding:8px 22px 0; }
+.tabBtn { flex:1 1 0; background:#181530; border:2px solid #584ca8; color:#a8a8c8; padding:13px 6px; font-family:'VT323'; font-size:23px; cursor:pointer; }
+.tabBtn:hover { border-color:#40c8dc; color:#fff; }
+.tabBtn.on { background:#2c2760; border-color:#40c8dc; color:#fff; }
+#libOpenTop { flex:none; margin-left:26px; background:#ffb62e; border:2px solid #ffb62e; color:#191233; padding:0 26px; font-family:'Segoe UI', Arial, sans-serif; font-weight:700; letter-spacing:.4px; font-size:16px; cursor:pointer; }
+#libOpenTop:hover { background:#ffc61a; }
+.stepLine { color:#46e0b0; font-size:15.5px; padding:0 2px 9px; border-bottom:1px solid #2a2650; margin:0 0 12px; }
+.pageNav { display:flex; justify-content:space-between; align-items:center; margin-top:4px; }
+button.nextBtn { background:#3ecf6f; border:none; color:#0b2413; font-weight:bold; padding:14px 28px; font-size:15.5px; cursor:pointer; }
+button.nextBtn:hover { background:#54dd84; }
+button.prevBtn { background:#221f42; border:2px solid #584ca8; color:#a8a8c8; padding:12px 22px; font-size:15px; cursor:pointer; }
+button.prevBtn:hover { border-color:#40c8dc; color:#fff; }
+button.mini.libBtn { border-color:#ffb62e; color:#ffb62e; }
+#page3 #previewBox { max-width:760px; }
+#libModal { position:fixed; inset:0; background:rgba(4,4,12,.88); display:none; z-index:60; }
+#libModal .box { position:relative; max-width:1060px; margin:26px auto; background:#16143a; border:2px solid #40c8dc; padding:16px 18px; max-height:92vh; overflow:auto; }
+#libModal h3 { font-family:'VT323'; font-size:25px; color:#40c8dc; margin:0 0 4px; font-weight:normal; }
+#libX { position:absolute; top:10px; right:12px; background:#221f42; border:2px solid #ff5d73; color:#ff5d73; width:38px; height:38px; font-size:18px; cursor:pointer; }
+#libCtx { color:#fff; font-size:14.5px; margin:0 0 8px; }
+#libGuide { display:none; border:2px solid #ffb62e; color:#ffb62e; background:#2a2110; padding:8px 12px; font-size:14px; margin:0 0 10px; line-height:1.5; }
+#libModal .libgrid { grid-template-columns:repeat(4,1fr); }
+#libClose { margin-top:12px; }
 .panel h2 { font-family:'VT323'; font-size:24px; color:#40c8dc; margin:0 0 10px; font-weight:normal; }
 textarea { width:100%; height:270px; background:#100e28; color:#fff; border:1px solid #584ca8; padding:10px; font-size:15px; resize:vertical; }
 .chips { margin:10px 0; }
@@ -227,8 +253,6 @@ label.lbl { font-family:'VT323'; font-size:20px; color:#40c8dc; display:block; m
 #previewBox { border:2px solid #584ca8; background:#000; }
 #previewBox img { width:100%; display:block; image-rendering:pixelated; }
 #previewCap { background:#04040a; color:#ffd84f; text-align:center; padding:7px 6px; font-size:14px; }
-#libBox { margin-top:16px; border:2px solid #3a3570; padding:10px 12px; }
-#libBox h3 { font-family:'VT323'; font-size:21px; color:#40c8dc; margin:0 0 6px; font-weight:normal; }
 #libSearch { width:100%; background:#100e28; color:#fff; border:1px solid #a8a8c8; padding:8px; font-size:14px; box-sizing:border-box; margin-bottom:2px; }
 .libgrid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:4px; }
 .libgh { font-family:'VT323'; font-size:19px; color:#ffd84f; margin:10px 0 5px; }
@@ -268,14 +292,18 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
 </head>
 <body>
 <header>
-  <h1>PIXEL STUDIO <span class="tag">— V2.5 · tool video vẽ bằng code</span></h1>
+  <h1>PIXEL STUDIO <span class="tag">— V2.6 · tool video vẽ bằng code</span></h1>
   <p class="sub">Dán kịch bản → tool TỰ GÁN cảnh theo nội dung từng câu → chỉnh tay nếu muốn → Render. Không cần biết code.</p>
-  <div class="lock"><b>PHONG CÁCH ĐÃ KHÓA: PIXEL 16-BIT</b> — lưới 320×180, phóng NEAREST, đổ bóng 2–3 tông + dithering.<br>
-  <span class="c3">MỚI Ở V2.5: 5 GÓI PHONG CÁCH RIÊNG — PIXEL 16-BIT · STAGE · CRT · PAPER · ZINE — CHỌN Ở MỤC 0 ĐẦU TRANG, MỖI VIDEO THUỘC ĐÚNG 1 GÓI · MỖI MẪU CÓ BIẾN THỂ BỐ CỤC TỰ XOAY CHỐNG TRÙNG KHUÔN · LOG RENDER CÓ QUÉT NHỊP + QUÉT TRÙNG.</span><br>
-  <span class="c3">GÓI STAGE — KINETIC: 11 MẪU CHỮ CHUYỂN ĐỘNG KIỂU "GIỮ CHÂN" (TÊN CŨ: TEST01) Ở NHÓM "STAGE — kinetic" TRONG BẢNG ĐỔI CẢNH: THẺ HOOK · ĐÓNG DẤU · CỬA SỔ GÕ CHỮ · SÂN KHẤU CHỮ · SO SÁNH A/B · HÀNG MỤC · BỘ ĐẾM LỚN · LƯỚI Ô · THANH TIẾN TRÌNH/HP · COMBO · MÀN HÌNH CUỐI THEO DÕI.</span><br>
-  <span class="c2">DỰ ÁN RIÊNG CHO KÊNH MỚI — tách biệt hẳn tool videos hiện tại.</span></div>
 </header>
+<nav id="tabbar">
+  <button class="tabBtn on" data-page="1">1 · Kịch bản</button>
+  <button class="tabBtn" data-page="2">2 · Từng câu</button>
+  <button class="tabBtn" data-page="3">3 · Xem trước &amp; Render</button>
+  <button id="libOpenTop">▤ THƯ VIỆN</button>
+</nav>
 <main>
+ <div class="page" id="page1">
+  <div class="stepLine">Bước 1/3 — Chọn phong cách và dán kịch bản. Chỉ vậy thôi.</div>
   <section class="panel">
     <h2>0 · GÓI PHONG CÁCH — CHỌN 1 GÓI CHO CẢ VIDEO</h2>
     <div id="packGrid"></div>
@@ -289,7 +317,7 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
       <label class="switch"><input type="checkbox" id="autoToggle" checked><span class="slider"></span></label>
       <span id="toggleState">BẬT</span>
     </div>
-    <p class="note">Dán script xong, tool tự đọc từng câu và gán cảnh khớp nội dung (chạy 100% trên máy bạn, không gửi đi đâu). Gán chưa đúng ý thì đổi tay ở cột 2 — lựa chọn của bạn luôn thắng.</p>
+    <p class="note">Dán script xong, tool tự đọc từng câu và gán cảnh khớp nội dung (chạy 100% trên máy bạn, không gửi đi đâu). Gán chưa đúng ý thì đổi tay ở Bước 2 — lựa chọn của bạn luôn thắng.</p>
     <div id="hlPreview"></div>
     <p class="note" style="margin-top:8px">Manh mối gán cảnh: <span class="hl-pct">■ số %/tăng</span> · <span class="hl-vs">■ so sánh</span> · <span class="hl-step">■ thứ tự bước</span> · <span class="hl-year">■ mốc năm</span></p>
     <div class="chips"><span class="chip" id="chipCount">0 câu thoại</span><span class="chip" id="chipAuto">0 / 0 đã TỰ GÁN</span><span class="chip" id="chipDur">~0 giây</span></div>
@@ -297,26 +325,22 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
     Mọi mẫu cảnh đều CÓ CHUYỂN ĐỘNG + HIỆU ỨNG. Dữ kiện trích từ câu (số %, tên 2 phía, số năm...) được đưa thẳng vào hình khi render.<br><br>
 <b>Gói STAGE — kinetic (11 mẫu, tên cũ test01):</b> phong cách chữ chuyển động "giữ chân" trên nền nâu đen (thẻ hook, đóng dấu, cửa sổ gõ chữ, sân khấu chữ, so sánh A/B, hàng mục, bộ đếm lớn, lưới ô, thanh tiến trình/HP, combo, màn hình cuối) — chọn gói ở mục 0 phía trên, sửa chữ/số ngay trên thẻ câu như mẫu Style2.<br><br><b>3 gói mới:</b> <b>CRT</b> (terminal xanh lá phát sáng, giải mã scramble, log [OK], OVERCLOCK), <b>PAPER</b> (giấy kem mực đen, note vàng, tem đỏ, font viết tay Itim), <b>ZINE</b> (cắt dán tạp chí — mỗi từ 1 ô giấy tự xáo font/màu/góc theo từng video). <b>Lớp biến thể chống trùng khuôn:</b> mỗi mẫu ở 4 gói template có 2 biến thể bố cục — để trống ô "Biến thể bố cục" là tool tự xoay theo vị trí câu + dấu vân của kịch bản (cùng kịch bản render lại = cùng kết quả); render xong xem log: có dòng [nhip] quét nhịp và [trung] cảnh báo trùng khuôn.</p>
   </section>
+  <div class="pageNav"><span></span><button class="nextBtn" data-goto="2">SANG BƯỚC 2 · TỪNG CÂU »</button></div>
+ </div>
+ <div class="page" id="page2" style="display:none">
+  <div class="stepLine">Bước 2/3 — Chỉnh từng câu: đổi cảnh, thêm ảnh từ Thư Viện, sửa số liệu.</div>
   <section class="panel">
     <h2>2 · TỪNG CÂU — TỰ GÁN CẢNH</h2>
     <div id="cards"><p class="note">Đang tải...</p></div>
   </section>
+  <div class="pageNav"><button class="prevBtn" data-goto="1">« VỀ BƯỚC 1 · KỊCH BẢN</button><button class="nextBtn" data-goto="3">SANG BƯỚC 3 · XEM TRƯỚC &amp; RENDER »</button></div>
+ </div>
+ <div class="page" id="page3" style="display:none">
+  <div class="stepLine">Bước 3/3 — Xem trước cảnh đang chọn, chọn nhạc rồi bấm Render.</div>
   <section class="panel">
     <h2>3 · XEM TRƯỚC + RENDER</h2>
     <div id="previewBox"><img id="previewImg" src="/previews/scene-01.gif" alt="xem trước">
-    <div id="previewCap">Xem trước động của mẫu cảnh đang chọn ở cột 2.</div></div>
-    <div id="libBox">
-      <h3>THƯ VIỆN STYLE2 (TỪ VIDEO NOKIA)</h3>
-      <input id="libSearch" type="text" placeholder="Tìm: gõ tên hoặc từ khoá (vd: sup do, dien thoai, chart)...">
-      <div class="pchips" id="libChips"></div>
-      <div id="libGroups"></div>
-      <details id="libRefs">
-        <summary>THAM CHIẾU VẼ (3 ảnh thật — không dùng làm nền)</summary>
-        <div id="libRefGrid" class="libgrid"></div>
-        <p class="note">Ảnh thật của người nổi tiếng, chỉ dùng làm mẫu để vẽ chân dung pixel — KHÔNG đặt làm nền video.</p>
-      </details>
-      <p class="note" id="libNote">Đang tải thư viện...</p>
-    </div>
+    <div id="previewCap">Xem trước động của mẫu cảnh đang chọn ở Bước 2.</div></div>
     <label class="lbl">Giọng đọc (cố định):</label>
     <div class="row"><select id="voice" disabled><option>am_adam — giọng cố định của kênh</option></select></div>
     <label class="lbl">Định dạng:</label>
@@ -339,6 +363,8 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
       <div id="joinStatus"></div>
     </div>
   </section>
+  <div class="pageNav"><button class="prevBtn" data-goto="2">« VỀ BƯỚC 2 · TỪNG CÂU</button><span></span></div>
+ </div>
 </main>
 <div id="picker">
   <div class="box">
@@ -351,6 +377,24 @@ button#renderBtn:disabled { background:#3a5a48; color:#9db8a8; cursor:wait; }
     <div id="pickerGrid" class="pgrid"></div>
     <p id="pickerEmpty">Không tìm thấy cảnh nào khớp. Thử từ khóa khác hoặc chọn nhóm "Tất cả".</p>
     <button class="mini" id="pickerClose">Đóng (không đổi)</button>
+  </div>
+</div>
+<div id="libModal">
+  <div class="box">
+    <button id="libX" title="Đóng thư viện">✕</button>
+    <h3>▤ THƯ VIỆN <span style="font-size:19px; color:#a8a8c8;">— chọn 1 mục để đưa vào cảnh đang sửa</span></h3>
+    <div id="libCtx"></div>
+    <div id="libGuide">Bạn đang mở Thư Viện từ thanh tab (chưa gắn với câu nào) — ở chế độ này chỉ xem và tìm mục thôi. Muốn gán 1 mục vào cảnh: sang <b>Bước 2</b>, bấm nút <b>Thư Viện</b> ngay trong thẻ câu cần sửa rồi chọn mục tại đây.</div>
+    <input id="libSearch" type="text" placeholder="Tìm: gõ tên hoặc từ khoá (vd: sup do, dien thoai, chart)...">
+    <div class="pchips" id="libChips"></div>
+    <div id="libGroups"></div>
+    <details id="libRefs">
+      <summary>THAM CHIẾU VẼ (3 ảnh thật — không dùng làm nền)</summary>
+      <div id="libRefGrid" class="libgrid"></div>
+      <p class="note">Ảnh thật của người nổi tiếng, chỉ dùng làm mẫu để vẽ chân dung pixel — KHÔNG đặt làm nền video.</p>
+    </details>
+    <p class="note" id="libNote">Đang tải thư viện...</p>
+    <button class="mini" id="libClose">Đóng</button>
   </div>
 </div>
 <script>
@@ -404,7 +448,7 @@ function sceneById(id){ return SCENES.find(x => x.id === id); }
 function sceneGif(id){
   const sc = sceneById(id);
   if (sc && sc.gif) return sc.gif;
-  const GPRE = {'t1:':'test01-','s2:':'style2-','ct:':'crt-','pp:':'paper-','zn:':'zine-'};
+  const GPRE = {'t1:':'test01-','s2:':'style2-','ct:':'crt-','pp:':'paper-','zn:':'zine-','cl:':'clay-','fl:':'flat-','sh:':'show-'};
   if (typeof id === 'string'){
     for (const pre in GPRE)
       if (id.indexOf(pre) === 0) return '/previews/' + GPRE[pre] + id.slice(3) + '.gif';
@@ -493,7 +537,7 @@ function hlSentence(text, highlights){
 
 function renderHlPreview(results){
   const box = document.getElementById('hlPreview');
-  if (!autoOn()){ box.innerHTML = '<p class="note">Tự gán đang TẮT — bạn chọn cảnh tay cho từng câu ở cột 2.</p>'; return; }
+  if (!autoOn()){ box.innerHTML = '<p class="note">Tự gán đang TẮT — bạn chọn cảnh tay cho từng câu ở Bước 2.</p>'; return; }
   box.innerHTML = sentences.map((s,i) =>
     '<p><span class="snum">' + (i+1) + '.</span> ' + hlSentence(s, results && results[i] ? results[i].highlights : []) + '</p>'
   ).join('');
@@ -585,7 +629,10 @@ function renderCards(results){
     pkChip.textContent = packById(scNow ? scenePackId(scNow) : currentPack).label;
     const chBtn = document.createElement('button'); chBtn.className = 'mini'; chBtn.textContent = 'Đổi cảnh';
     chBtn.addEventListener('click', () => openPicker(i));
-    sRow.appendChild(cur); sRow.appendChild(pkChip); sRow.appendChild(chBtn);
+    const libBtn = document.createElement('button'); libBtn.className = 'mini libBtn'; libBtn.textContent = '▤ Thư Viện';
+    libBtn.title = 'Mở Thư Viện để chọn ảnh / mục đưa vào cảnh của câu này';
+    libBtn.addEventListener('click', () => openLibrary(i));
+    sRow.appendChild(cur); sRow.appendChild(pkChip); sRow.appendChild(chBtn); sRow.appendChild(libBtn);
     right.appendChild(sRow);
     const tm = document.createElement('div'); tm.className = 'time';
     tm.textContent = 'Ước tính ~' + estDur(s).toFixed(1) + 's · hiệu ứng: hiện dần + chuyển động riêng của mẫu';
@@ -682,6 +729,24 @@ document.getElementById('autoToggle').addEventListener('change', () => {
   rebuild();
 });
 renderPackPicker();
+
+// ===== DIEU HUONG 3 TRANG (tab — an/hien, khong tai lai trang) =====
+let curPage = 1;
+function showPage(n){
+  curPage = n;
+  [1, 2, 3].forEach(k => {
+    document.getElementById('page' + k).style.display = (k === n) ? '' : 'none';
+  });
+  document.querySelectorAll('.tabBtn').forEach(b =>
+    b.classList.toggle('on', parseInt(b.dataset.page) === n));
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll('.tabBtn').forEach(b =>
+  b.addEventListener('click', () => showPage(parseInt(b.dataset.page))));
+document.querySelectorAll('[data-goto]').forEach(b =>
+  b.addEventListener('click', () => showPage(parseInt(b.dataset.goto))));
+document.getElementById('libOpenTop').addEventListener('click', () => openLibrary(-1));
+
 fetch('/api/music').then(r=>r.json()).then(list=>{
   const sel = document.getElementById('music');
   list.forEach(f=>{ const o=document.createElement('option'); o.value=f; o.textContent=f; sel.appendChild(o); });
@@ -699,7 +764,7 @@ document.getElementById('renderBtn').addEventListener('click', async () => {
   const missing = cardsState.findIndex(st => !st.scene);
   if (!cardsState.length){ alert('Chưa có câu thoại nào.'); return; }
   if (missing >= 0){
-    alert('Câu ' + (missing+1) + ' chưa có cảnh. Hãy chọn mẫu cảnh cho câu đó ở cột 2 trước khi Render.');
+    alert('Câu ' + (missing+1) + ' chưa có cảnh. Hãy chọn mẫu cảnh cho câu đó ở Bước 2 (trang Từng câu) trước khi Render.');
     return;
   }
   const job = cardsState.map(st => {
@@ -872,16 +937,49 @@ function showLibItem(it, src){
   document.getElementById('previewCap').textContent =
     'THƯ VIỆN: ' + it.name + ' (' + it.kind + ' · ' + (it.dgroup || it.group) + ') — ' + it.tags;
 }
+let libCtx = -1; // -1 = mo tu thanh tab (chi xem); >= 0 = chi so the cau dang gan muc
+function openLibrary(idx){
+  libCtx = (typeof idx === 'number' && idx >= 0) ? idx : -1;
+  const ctx = document.getElementById('libCtx');
+  const guide = document.getElementById('libGuide');
+  if (libCtx >= 0){
+    const st = cardsState[libCtx];
+    const sc = st ? sceneById(st.scene) : null;
+    ctx.textContent = 'Đang sửa: Câu ' + (libCtx + 1) + ' · cảnh ' +
+      (sc ? sc.name : 'chưa chọn cảnh') + ' (gói ' +
+      packById(sc ? scenePackId(sc) : currentPack).label + ')';
+    guide.style.display = 'none';
+    setActive(libCtx);
+  } else {
+    ctx.textContent = 'Đang xem thư viện (chưa gắn với câu nào).';
+    guide.style.display = 'block';
+  }
+  renderLibrary();
+  document.getElementById('libModal').style.display = 'block';
+}
+function closeLibrary(){ document.getElementById('libModal').style.display = 'none'; }
 function setLibBg(it){
-  const st = cardsState[activeCard];
+  if (libCtx < 0){
+    const guide = document.getElementById('libGuide');
+    guide.style.display = 'block';
+    guide.scrollIntoView({ block: 'nearest' });
+    return;
+  }
+  const target = libCtx;
+  const st = cardsState[target];
   if (!st){ alert('Chưa có thẻ câu nào để đặt nền.'); return; }
   st.bgFile = it.file.split('/').pop();
-  st.bgName = it.name + ' (từ thư viện Style2)';
+  st.bgName = it.name + ' (từ thư viện)';
+  closeLibrary();
   renderCards(null);
+  setActive(target);
   document.getElementById('previewCap').textContent =
-    'Đã đặt "' + it.name + '" làm ẢNH NỀN cho câu ' + (activeCard + 1) +
-    ' — xem ở thẻ câu cột 2, bấm Render để thấy trong video.';
+    'Đã đặt "' + it.name + '" làm ẢNH NỀN cho câu ' + (target + 1) +
+    ' — xem ở thẻ câu tại Bước 2, bấm Render để thấy trong video.';
 }
+document.getElementById('libClose').addEventListener('click', closeLibrary);
+document.getElementById('libX').addEventListener('click', closeLibrary);
+document.getElementById('libModal').addEventListener('click', (e) => { if (e.target.id === 'libModal') closeLibrary(); });
 function libCellEl(it, withBg){
   const cell = document.createElement('div'); cell.className = 'libcell';
   const src = '/' + (it.kind === 'template' ? (it.preview || it.file) : it.file);
@@ -943,7 +1041,7 @@ function renderLibrary(){
   document.getElementById('libNote').textContent =
     'Đang hiện ' + shown + ' mục' +
     (hidden ? ' · đã ẩn ' + hidden + ' mục hỗ trợ nội bộ (chỉ code dùng)' : '') +
-    ' — bấm 1 mục để xem lớn ở hộp xem trước; nút "Đặt làm nền" gán ảnh cho câu đang chọn ở cột 2.';
+    ' — bấm 1 mục để xem lớn ở hộp xem trước (Bước 3); nút "Đặt làm nền" gán ảnh cho câu đang mở Thư Viện rồi tự đóng hộp.';
 }
 fetch('/api/library').then(r => r.json()).then(list => {
   libItems = list || [];
@@ -1005,7 +1103,8 @@ class Handler(BaseHTTPRequestHandler):
             # 4 GOI TEMPLATE (STAGE/CRT/PAPER/ZINE) qua registry packs:
             # id "<prefix><key>", nhom hien thi = ten goi, gif theo tien to.
             _gifpre = {"stage": "test01-", "crt": "crt-",
-                       "paper": "paper-", "zine": "zine-"}
+                       "paper": "paper-", "zine": "zine-",
+                       "clay": "clay-", "flat": "flat-", "show": "show-"}
             for _pk in packs_mod.PACKS:
                 if not _pk["prefix"]:
                     continue
@@ -1074,7 +1173,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(400, json.dumps({"error": str(e)}),
                            "application/json")
         elif u.path == "/api/suggest-pack":
-            # Tu gan canh cho 4 goi template (stage/crt/paper/zine):
+            # Tu gan canh cho 7 goi template (stage/crt/paper/zine/clay/flat/show):
             # tra cung dinh dang results nhu /api/analyze de UI dung chung.
             try:
                 data = self._read_json()
@@ -1128,7 +1227,7 @@ class Handler(BaseHTTPRequestHandler):
                     item = {"text": str(s["text"])}
                     tpl = s.get("template")
                     if tpl:
-                        # chap nhan alias cu "test01" (-> stage) + 5 goi
+                        # chap nhan alias cu "test01" (-> stage) + 8 goi
                         tpack = (packs_mod.normalize_pack(
                             str(s.get("tpack") or "style2")) or "style2")
                         _mod = packs_mod.module_for(tpack)

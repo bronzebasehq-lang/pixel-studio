@@ -137,12 +137,20 @@ RULES = [
         "keywords_vi": ["bạn", "người dùng", "tưởng tượng"],
         "patterns": [],
     },
+    {
+        "scene": 9,
+        "name": "Sao băng quét cảnh",
+        "keywords_en": ["viral", "skyrocket", "breakout", "meteor",
+                        "exploded", "overnight"],
+        "keywords_vi": ["bùng nổ", "vụt sáng", "sao băng", "qua một đêm"],
+        "patterns": [],
+    },
 ]
 
 # Thu tu uu tien khi bang diem (SPEC-V2 muc 2):
 # vs/so sanh -> buoc -> % tang truong -> moc nam -> co che
 # -> ket noi -> tich luy -> con nguoi
-PRIORITY = [2, 6, 1, 4, 7, 3, 5, 8]
+PRIORITY = [2, 6, 1, 4, 7, 3, 5, 8, 9]
 
 _NAME_BY_SCENE = {rule["scene"]: rule["name"] for rule in RULES}
 _PRIORITY_INDEX = {scene: i for i, scene in enumerate(PRIORITY)}
@@ -158,6 +166,7 @@ _PARAMS_KEYS_BY_SCENE = {
     6: ("stages",),
     7: (),
     8: (),
+    9: (),
 }
 
 # Tu chi thu tu dung cho dem "stages" va highlight hl-step.
@@ -224,6 +233,8 @@ SCENE_META = {
         "tags": "co may van hanh banh rang tu dong machine works engine he thong chay"},
     8: {"group": "Con người",
         "tags": "nguoi nhan vat cong ty founder person imagine you chu doanh nghiep"},
+    9: {"group": "Tăng trưởng",
+        "tags": "sao bang quet bung no viral meteor skyrocket breakout vuot troi"},
 }
 
 
